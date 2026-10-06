@@ -2,7 +2,7 @@
 // - 没填 Firebase 配置时：数据只存在这台设备的浏览器里（localStorage）
 // - 填了 Firebase 配置后：数据存在云端，同一个家庭的所有人实时共享；浏览器里也留一份，打开时先显示
 (function () {
-  const KEYS = ['foodList', 'shoppingList', 'eatenLog', 'members', 'mealPlan'];
+  const KEYS = ['foodList', 'shoppingList', 'eatenLog', 'members', 'mealPlan', 'settings'];
 
   // 把"几天后"换算成具体日期，例如 daysFromToday(5) → 5 天后的 2026-10-10
   function daysFromToday(days) {
@@ -26,6 +26,8 @@
       eatenLog: [],
       // 一周食谱：{ '2026-10-06': { 早餐: [菜, ...], 午餐: [菜, ...] }, ... }
       mealPlan: {},
+      // 家庭设置：{ familyName: '李家大冰箱' }
+      settings: {},
       // 云端模式下，成员是每个人打开时自己选称呼加进来的，所以一开始是空的
       members: cloud ? [] : [{ avatar: '👤', name: '我', role: '管理员' }],
     };

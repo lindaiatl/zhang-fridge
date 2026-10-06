@@ -779,3 +779,37 @@ label.remaining-days {
   font-size: 12px;
   padding: 14px 2px;
 }
+
+/* ---------- 顶部栏、使用说明 ---------- */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-button {
+  position: absolute;
+  right: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #666;
+}
+
+.help-content h3 {
+  font-size: 16px;
+  margin: 16px 0 4px;
+}
+
+.help-content p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #444;
+  margin: 0;
+}
+
+.help-content .note-text {
+  margin: 16px 0 4px;
+}

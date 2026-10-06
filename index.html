@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#4CAF50" />
-  <title>张家大冰箱</title>
+  <title>家庭大冰箱</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧊</text></svg>" />
   <!-- 添加到手机主屏幕后的图标和全屏显示 -->
   <link rel="manifest" href="manifest.json" />
@@ -14,15 +14,18 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610061849" />
+  <link rel="stylesheet" href="style.css?v=202610061900" />
 </head>
 <body>
-  <header class="top-bar">张家大冰箱</header>
+  <header class="top-bar">
+    <span class="family-name">家庭大冰箱</span>
+    <button id="help-button" class="help-button" aria-label="使用说明">❓ 说明</button>
+  </header>
 
   <main>
     <!-- 🏠 共享大冰箱 -->
     <section id="page-fridge" class="page active">
-      <p class="welcome-text">欢迎来到张家大冰箱！这里将是你的家庭智能食物管家。</p>
+      <p class="welcome-text">欢迎来到<span class="family-name">家庭大冰箱</span>！这里是全家共享的食物管家。</p>
 
       <div class="card">
         <h2 class="card-title">冰箱里的食材</h2>
@@ -45,12 +48,13 @@
 
     <!-- 👥 我的家庭 -->
     <section id="page-family" class="page">
-      <h1 class="page-title">🏡 张家大冰箱 · 家庭控制台</h1>
+      <h1 class="page-title">🏡 <span class="family-name">家庭大冰箱</span> · 家庭控制台</h1>
 
       <div class="family-id-card">
         <div class="family-id-label">家庭唯一 Family ID：</div>
         <div id="family-id" class="family-id">📌 本机模式</div>
         <div id="sync-status" class="sync-status"></div>
+        <button id="rename-family" class="switch-family-button">✏️ 改家庭名</button>
         <button id="switch-family" class="switch-family-button">🔄 切换到别的家庭</button>
       </div>
 
@@ -129,6 +133,37 @@
     </div>
   </div>
 
+  <!-- 使用说明 -->
+  <div id="help-modal" class="modal-mask" hidden>
+    <div class="modal-content help-content">
+      <h2 class="modal-title">❓ 使用说明</h2>
+
+      <h3>👨‍👩‍👧 1. 全家加入同一个冰箱</h3>
+      <p>第一个人点「创建我们家的冰箱」，起个名字。其他家人打开网址后，在欢迎窗里输入「我的家庭」页黄色卡片上的 <b>Family ID</b>（10 位字母和数字）加入，再选自己的称呼。家庭编号就像家里的钥匙，只发给家人。</p>
+
+      <h3>📱 2. 放到手机桌面</h3>
+      <p>iPhone：用 Safari 打开 → 点「分享」→「添加到主屏幕」。安卓：用 Chrome 打开 → 右上角「⋮」→「添加到主屏幕」。不要用无痕模式。从桌面图标第一次打开时，如果又出现欢迎窗，输入家庭编号、点自己的名字认回来就行。</p>
+
+      <h3>📅 3. 排一周食谱</h3>
+      <p>在「本周食谱」里给每天的早餐、午餐、晚餐点「＋ 加菜」，从家常菜里选，或自己写菜名和食材（如：羊肉 1斤，葱 1把）。冰箱里没有的食材会<b>自动放进购买清单</b>；删掉一道菜，不再需要的食材也会自动去掉。</p>
+
+      <h3>🛒 4. 买菜</h3>
+      <p>「我的家庭」页的购买清单可以自己添加（写上数量，如：猪肉 1斤）。买到后勾选，再点「🛒 买到」，食材就进冰箱，并按食材自动算好能放几天。</p>
+
+      <h3>🧊 5. 冰箱</h3>
+      <p>快过期的排在最前面，红色表示 2 天内到期。点「剩 X 天 ✏️」可以改到期日；肉类可以点「❄️ 冻起来」，能放更久。</p>
+
+      <h3>🍽️ 6. 记录吃了多少</h3>
+      <p>在冰箱里点食材右边的「吃了」，选全部、一半或自己填数量。没吃完的会留在冰箱里，营养只按吃掉的量算。</p>
+
+      <h3>📊 7. 营养大盘</h3>
+      <p>自动加总全家今天吃的热量和蛋白质，按人分开显示。数值是按常见食材估算的参考值。</p>
+
+      <p class="note-text">所有功能免费，不需要注册账号。</p>
+      <button id="help-close" class="big-button green">知道了</button>
+    </div>
+  </div>
+
   <!-- 吃了多少 -->
   <div id="eat-modal" class="modal-mask" hidden>
     <div class="modal-content">
@@ -160,13 +195,14 @@
   <!-- 这台设备还没加入家庭：加入已有家庭，或创建新家庭 -->
   <div id="family-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">🧊 欢迎来到张家大冰箱</h2>
+      <h2 class="modal-title">🧊 欢迎来到家庭大冰箱</h2>
       <p class="recipe-inspiration">家里已经有人在用了？输入家人「我的家庭」页面上的 Family ID，就能进入同一个冰箱。</p>
       <form id="join-form" class="add-item-bar">
         <input id="join-input" class="add-item-input" placeholder="输入家庭编号，10 位字母和数字" maxlength="16" autocapitalize="characters" autocomplete="off" />
         <button type="submit" class="add-item-button">加入</button>
       </form>
       <p class="or-text">—— 或者 ——</p>
+      <input id="new-family-name" class="add-item-input full" placeholder="给你们家的冰箱起个名字，如：李家大冰箱" maxlength="12" />
       <button id="create-family" class="big-button green">🏠 我是第一个，创建我们家的冰箱</button>
     </div>
   </div>
@@ -174,7 +210,7 @@
   <!-- 第一次进入家庭时选称呼 -->
   <div id="who-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">👋 欢迎加入张家大冰箱</h2>
+      <h2 class="modal-title">👋 欢迎加入<span class="family-name">家庭大冰箱</span></h2>
       <div id="claim-section" hidden>
         <p class="recipe-inspiration">你以前在这个家庭里用过吗？点自己的名字认回来：</p>
         <div id="claim-options" class="who-options"></div>
@@ -197,11 +233,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610061849';</script>
-  <script src="firebase-config.js?v=202610061849"></script>
-  <script src="foods.js?v=202610061849"></script>
-  <script src="recipes.js?v=202610061849"></script>
-  <script src="store.js?v=202610061849"></script>
-  <script src="app.js?v=202610061849"></script>
+  <script>window.APP_VERSION = '?v=202610061900';</script>
+  <script src="firebase-config.js?v=202610061900"></script>
+  <script src="foods.js?v=202610061900"></script>
+  <script src="recipes.js?v=202610061900"></script>
+  <script src="store.js?v=202610061900"></script>
+  <script src="app.js?v=202610061900"></script>
 </body>
 </html>

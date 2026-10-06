@@ -15,6 +15,21 @@
   };
   const WHO_CHOICES = ['老公', '老婆', '爸爸', '妈妈', '爷爷', '奶奶', '外公', '外婆', '哥哥', '姐姐', '弟弟', '妹妹', '宝贝'];
 
+  // 家庭名：每家自己起，比如"李家大冰箱"；还没起名时显示"家庭大冰箱"
+  const DEFAULT_FAMILY_NAME = '家庭大冰箱';
+  function familyName() {
+    const settings = Store.get('settings') || {};
+    return settings.familyName || DEFAULT_FAMILY_NAME;
+  }
+
+  function renderFamilyName() {
+    const name = familyName();
+    document.querySelectorAll('.family-name').forEach((el) => {
+      el.textContent = name;
+    });
+    document.title = name;
+  }
+
   // 这台设备上的"我"是成员列表里的哪一位（还没选称呼时是 null）
   function me() {
     return Store.get('members').find((m) => m.id === Store.deviceId) || null;
@@ -618,7 +633,7 @@
   // 只分享链接本身：微信的分享入口同时收到文字和链接时会报错
   $('invite-share').addEventListener('click', async () => {
     try {
-      await navigator.share({ title: '张家大冰箱', url: Store.inviteUrl() });
+      await navigator.share({ title: familyName(), url: Store.inviteUrl() });
     } catch (err) {
       // 用户取消分享时不用提示
     }
@@ -766,9 +781,30 @@
   });
 
   $('create-family').addEventListener('click', () => {
-    if (confirm('确定要创建一个新的家庭冰箱吗？\n如果家人已经在用了，请改为输入他们的家庭编号加入。')) {
+    const name = $('new-family-name').value.trim() || DEFAULT_FAMILY_NAME;
+    if (confirm(`确定要创建「${name}」吗？\n如果家人已经在用了，请改为输入他们的家庭编号加入。`)) {
+      // 先记下名字，切换到新家庭后再保存到云端
+      try {
+        localStorage.setItem('fridge.pendingFamilyName', name);
+      } catch (e) {}
       Store.switchFamily(Store.newFamilyId());
     }
+  });
+
+  $('rename-family').addEventListener('click', () => {
+    const name = (prompt('给你们家的冰箱起个名字：', familyName()) || '').trim().slice(0, 12);
+    if (!name || name === familyName()) return;
+    Store.set('settings', Object.assign({}, Store.get('settings'), { familyName: name }));
+    updateManifest();
+    showToast(`已改名为「${name}」`);
+  });
+
+  // 使用说明
+  $('help-button').addEventListener('click', () => {
+    $('help-modal').hidden = false;
+  });
+  $('help-close').addEventListener('click', () => {
+    $('help-modal').hidden = true;
   });
 
   $('switch-family').addEventListener('click', () => {
@@ -798,8 +834,8 @@
   function updateManifest() {
     const base = new URL('./', location.href).toString();
     const manifest = {
-      name: '张家大冰箱',
-      short_name: '大冰箱',
+      name: familyName(),
+      short_name: familyName().slice(0, 6),
       start_url: Store.inviteUrl(),
       scope: base,
       display: 'standalone',
@@ -840,6 +876,7 @@
 
   // ---------- 启动 ----------
   function renderAll() {
+    renderFamilyName();
     renderFridge();
     renderMenu();
     renderFamily();
@@ -858,11 +895,21 @@
         $('family-modal').hidden = false;
         return;
       }
+      // 刚创建的家庭：把创建时起的名字存上
+      let pendingName = null;
+      try {
+        pendingName = localStorage.getItem('fridge.pendingFamilyName');
+        localStorage.removeItem('fridge.pendingFamilyName');
+      } catch (e) {}
+      if (ok && pendingName && !(Store.get('settings') || {}).familyName) {
+        Store.set('settings', Object.assign({}, Store.get('settings'), { familyName: pendingName }));
+      }
       updateManifest();
       $('sync-status').textContent = ok ? '☁️ 已和家人实时同步' : '⚠️ 云端连接失败，暂时只保存在本机';
       if (ok && !me()) showWhoModal();
     });
   } else {
     $('switch-family').hidden = true;
+    $('rename-family').hidden = true;
   }
 })();
