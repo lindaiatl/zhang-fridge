@@ -58,7 +58,7 @@
       window.scrollTo(0, 0);
       // 打开食谱页时补查一次：之前排的菜如果还缺食材，补进购买清单
       if (tab.dataset.page === 'menu') {
-        const added = addMissingToShopping();
+        const { added } = syncShoppingWithMenu();
         if (added.length) showToast(`食谱里还缺的食材已放进购买清单：\n${added.join('、')}`, 3500);
       }
     });
@@ -335,7 +335,16 @@
     const { date, meal } = button.dataset;
     if (button.dataset.action === 'remove') {
       const index = parseInt(button.dataset.index, 10);
+      const removedDish = ((getPlan()[date] || {})[meal] || [])[index];
       setDishes(date, meal, (dishes) => dishes.filter((_, i) => i !== index));
+      // 删菜后，不再需要的食材从购买清单去掉；别的菜还要用的会留着
+      const { removed, added } = syncShoppingWithMenu();
+      if (removed.length || added.length) {
+        showToast(
+          `已删除：${removedDish ? removedDish.name : '这道菜'}\n购买清单已更新${removed.length ? `，去掉：${removed.join('、')}` : ''}${added.length ? `，现在需要：${added.join('、')}` : ''}`,
+          3500
+        );
+      }
     }
     if (button.dataset.action === 'add') openDishModal(date, meal);
   });
@@ -361,7 +370,7 @@
     setDishes(date, meal, (dishes) => dishes.concat(dish));
     $('dish-modal').hidden = true;
     // 过去的日子不用再买菜
-    const added = date >= todayString() ? addMissingToShopping() : [];
+    const added = date >= todayString() ? syncShoppingWithMenu().added : [];
     showToast(
       added.length
         ? `已加入：${dish.name}\n冰箱里没有的已放进购买清单：${added.join('、')}`
@@ -397,9 +406,15 @@
     return food.known ? food.keywords[0] : name.trim();
   }
 
-  // 加菜后自动更新购买清单：今天以后排好的所有菜 → 需要的食材 → 扣掉冰箱里和清单里已有的 → 只加缺的
-  // 返回这次新加进清单的食材文字
-  function addMissingToShopping() {
+  // 让购买清单跟着食谱走：今天以后排好的所有菜 → 需要的食材 → 扣掉冰箱里和清单上已有的 → 清单里只留缺的
+  // - 食谱自动加的、还没勾选的条目会按"现在还缺多少"重新计算（删菜后不再需要的就去掉）
+  // - 手动添加的、已经勾选"买到了"的条目都不动
+  // - 一种食材如果别的菜还要用，就不会被去掉
+  // 返回 { added, removed }：这次新加的和去掉的食材文字
+  function syncShoppingWithMenu() {
+    const before = Store.get('shoppingList');
+    const isAuto = (i) => i.requester === '食谱需要' && !i.bought;
+    const kept = before.filter((i) => !isAuto(i));
     const plan = getPlan();
     const today = todayString();
     const need = {}; // 归类名 → { name, unit, amount（能换算成克就按克，否则按单位个数）, byWeight }
@@ -420,10 +435,10 @@
         });
       });
 
-    // 已经有的量：冰箱里的 + 购买清单里还没买的
+    // 已经有的量：冰箱里的 + 清单上留着的（手动加的、已经勾选买到的）
     const haveItems = getFoods()
       .map((f) => ({ name: f.name, qty: f.qty, unit: f.unit }))
-      .concat(Store.get('shoppingList').filter((i) => !i.bought).map((i) => parseItem(i.name)));
+      .concat(kept.map((i) => parseItem(i.name)));
     function haveAmount(key, n) {
       return haveItems.reduce((total, item) => {
         if (foodKey(item.name) !== key) return total;
@@ -432,7 +447,6 @@
       }, 0);
     }
 
-    const added = [];
     const newItems = [];
     Object.keys(need).forEach((key, i) => {
       const n = need[key];
@@ -442,12 +456,17 @@
       let qty = n.byWeight ? shortage / toGrams(n.name, 1, n.unit) : shortage;
       qty = WEIGHT_UNIT_SET[n.unit] ? Math.ceil(qty * 10 - 0.0001) / 10 : Math.ceil(qty - 0.0001);
       const text = `${n.name} ${formatQty(qty)}${n.unit}`;
-      added.push(text);
-      newItems.push({ id: `menu-${Date.now()}-${i}`, name: text, requester: '食谱需要', bought: false });
+      // 原来就有一模一样的条目就沿用它（保留原来的位置和编号）
+      const same = before.find((item) => isAuto(item) && item.name === text);
+      newItems.push(same || { id: `menu-${Date.now()}-${i}`, name: text, requester: '食谱需要', bought: false });
     });
 
-    if (newItems.length) Store.set('shoppingList', Store.get('shoppingList').concat(newItems));
-    return added;
+    const oldTexts = before.filter(isAuto).map((i) => i.name);
+    const newTexts = newItems.map((i) => i.name);
+    const added = newTexts.filter((t) => oldTexts.indexOf(t) === -1);
+    const removed = oldTexts.filter((t) => newTexts.indexOf(t) === -1);
+    if (added.length || removed.length) Store.set('shoppingList', kept.concat(newItems));
+    return { added, removed };
   }
 
   // ---------- 👥 我的家庭 ----------
