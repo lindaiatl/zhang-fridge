@@ -56,6 +56,11 @@
         page.classList.toggle('active', page.id === 'page-' + tab.dataset.page);
       });
       window.scrollTo(0, 0);
+      // 打开食谱页时补查一次：之前排的菜如果还缺食材，补进购买清单
+      if (tab.dataset.page === 'menu') {
+        const added = addMissingToShopping();
+        if (added.length) showToast(`食谱里还缺的食材已放进购买清单：\n${added.join('、')}`, 3500);
+      }
     });
   });
 
