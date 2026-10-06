@@ -1,5 +1,5 @@
 // 张家大冰箱网页版：页面逻辑
-// 冰箱（吃多少记多少、冷藏/冷冻）、家庭（待买清单、反向入库）、营养大盘
+// 冰箱（吃多少记多少、冷藏/冷冻）、一周食谱、家庭（购买清单、买到入库）、营养大盘
 (function () {
   const { parseItem, nutritionFor, shelfDays, canFreeze, toGrams, lookup, formatQty, todayString } = window.Foods;
   const $ = (id) => document.getElementById(id);
@@ -245,7 +245,7 @@
   });
 
   // ---------- 📅 一周家庭食谱 ----------
-  const MEALS = ['早餐', '午餐'];
+  const MEALS = ['早餐', '午餐', '晚餐'];
   const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   // 按重量的单位：生成清单时保留一位小数；其他单位（个、盒…）向上取整
   const WEIGHT_UNIT_SET = { 斤: true, 两: true, 公斤: true, 千克: true, kg: true, 克: true, g: true };
@@ -273,7 +273,7 @@
     const plan = getPlan();
     const dates = weekDates(weekOffset);
     const today = todayString();
-    $('week-range').textContent = `${dates[0].slice(5)} ～ ${dates[6].slice(5)} · 每天排早餐和午餐`;
+    $('week-range').textContent = `${dates[0].slice(5)} ～ ${dates[6].slice(5)} · 每天排一日三餐`;
     $('menu-days').innerHTML = dates
       .map((date) => {
         const d = new Date(date + 'T00:00:00');
@@ -339,8 +339,10 @@
     pickingSlot = { date, meal };
     const d = new Date(date + 'T00:00:00');
     $('dish-title').textContent = `给${WEEKDAYS[d.getDay()]}${meal}加菜`;
-    // 先列这一顿常吃的，再列另一顿的（早餐吃面条、午餐吃饺子也行）
-    const recipes = Recipes.list(meal).concat(Recipes.list().filter((r) => r.meal !== meal));
+    // 先列这一顿常吃的，再列其他的（早餐吃面条、晚餐吃饺子也行）
+    const primary = Recipes.list(meal);
+    const names = primary.map((r) => r.name);
+    const recipes = primary.concat(Recipes.list().filter((r) => names.indexOf(r.name) === -1));
     $('dish-options').innerHTML = recipes
       .map((r) => `<button class="who-option" data-recipe="${escapeHtml(r.name)}">${escapeHtml(r.name)}</button>`)
       .join('');
@@ -353,7 +355,14 @@
     const { date, meal } = pickingSlot;
     setDishes(date, meal, (dishes) => dishes.concat(dish));
     $('dish-modal').hidden = true;
-    showToast(`已加入：${dish.name}`);
+    // 过去的日子不用再买菜
+    const added = date >= todayString() ? addMissingToShopping() : [];
+    showToast(
+      added.length
+        ? `已加入：${dish.name}\n冰箱里没有的已放进购买清单：${added.join('、')}`
+        : `已加入：${dish.name}（食材冰箱里都有）`,
+      3000
+    );
   }
 
   $('dish-options').addEventListener('click', (e) => {
@@ -383,13 +392,14 @@
     return food.known ? food.keywords[0] : name.trim();
   }
 
-  // 生成待买清单：今天以后排好的菜 → 需要的食材 → 扣掉冰箱里和清单里已有的 → 只加缺的
-  $('menu-to-shopping').addEventListener('click', () => {
+  // 加菜后自动更新购买清单：今天以后排好的所有菜 → 需要的食材 → 扣掉冰箱里和清单里已有的 → 只加缺的
+  // 返回这次新加进清单的食材文字
+  function addMissingToShopping() {
     const plan = getPlan();
     const today = todayString();
     const need = {}; // 归类名 → { name, unit, amount（能换算成克就按克，否则按单位个数）, byWeight }
 
-    weekDates(weekOffset)
+    Object.keys(plan)
       .filter((date) => date >= today)
       .forEach((date) => {
         MEALS.forEach((meal) => {
@@ -405,12 +415,7 @@
         });
       });
 
-    if (Object.keys(need).length === 0) {
-      showToast(weekOffset === 0 ? '本周今天以后还没有排菜' : '下周还没有排菜', 2000);
-      return;
-    }
-
-    // 已经有的量：冰箱里的 + 待买清单里还没买的
+    // 已经有的量：冰箱里的 + 购买清单里还没买的
     const haveItems = getFoods()
       .map((f) => ({ name: f.name, qty: f.qty, unit: f.unit }))
       .concat(Store.get('shoppingList').filter((i) => !i.bought).map((i) => parseItem(i.name)));
@@ -423,38 +428,22 @@
     }
 
     const added = [];
-    const enough = [];
     const newItems = [];
     Object.keys(need).forEach((key, i) => {
       const n = need[key];
       const shortage = n.amount - haveAmount(key, n);
-      if (shortage <= 0.0001) {
-        enough.push(n.name);
-        return;
-      }
+      if (shortage <= 0.0001) return;
       // 换回原来的单位：按个数的向上取整，按重量的保留一位小数
       let qty = n.byWeight ? shortage / toGrams(n.name, 1, n.unit) : shortage;
       qty = WEIGHT_UNIT_SET[n.unit] ? Math.ceil(qty * 10 - 0.0001) / 10 : Math.ceil(qty - 0.0001);
       const text = `${n.name} ${formatQty(qty)}${n.unit}`;
       added.push(text);
-      newItems.push({ id: `menu-${Date.now()}-${i}`, name: text, requester: '本周食谱需要', bought: false });
+      newItems.push({ id: `menu-${Date.now()}-${i}`, name: text, requester: '食谱需要', bought: false });
     });
 
     if (newItems.length) Store.set('shoppingList', Store.get('shoppingList').concat(newItems));
-
-    $('menu-result').innerHTML =
-      (added.length
-        ? `<p class="result-title">已加入待买清单：</p><p class="result-list">${added.map(escapeHtml).join('、')}</p>`
-        : '<p class="result-title">不用买新的，食材都够了 👍</p>') +
-      (enough.length
-        ? `<p class="result-title">冰箱里或清单上已经有：</p><p class="result-list muted">${enough.map(escapeHtml).join('、')}</p>`
-        : '');
-    $('menu-result-modal').hidden = false;
-  });
-
-  $('menu-result-close').addEventListener('click', () => {
-    $('menu-result-modal').hidden = true;
-  });
+    return added;
+  }
 
   // ---------- 👥 我的家庭 ----------
 
@@ -478,7 +467,7 @@
 
     const items = Store.get('shoppingList');
     if (items.length === 0) {
-      $('shopping-list').innerHTML = '<p class="empty-text">待买清单是空的。</p>';
+      $('shopping-list').innerHTML = '<p class="empty-text">购买清单是空的。</p>';
       return;
     }
     $('shopping-list').innerHTML = items
@@ -510,7 +499,7 @@
     }
   });
 
-  // 添加待买食材
+  // 手动添加要买的食材
   $('add-item-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const input = $('new-item-input');
@@ -527,7 +516,7 @@
     showToast('添加成功！');
   });
 
-  // 确认买齐，反向入库：勾选的食材进冰箱，从待买清单移除
+  // 买到：勾选的食材进冰箱，从购买清单移除
   $('confirm-purchase').addEventListener('click', () => {
     const items = Store.get('shoppingList');
     const bought = items.filter((item) => item.bought);

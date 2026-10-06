@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610061820" />
+  <link rel="stylesheet" href="style.css?v=202610061835" />
 </head>
 <body>
   <header class="top-bar">张家大冰箱</header>
@@ -40,8 +40,7 @@
         <button class="week-button" data-week="1">下周</button>
       </div>
       <div id="menu-days"></div>
-      <button id="menu-to-shopping" class="big-button green">🛒 把缺的食材加入待买清单</button>
-      <p class="note-text">会把今天以后排好的菜所需的食材加起来，扣掉冰箱里和待买清单里已有的，只加缺的。</p>
+      <p class="note-text">加菜后，冰箱里没有的食材会自动放进「我的家庭」页的购买清单（已经有的不会重复加）。</p>
     </section>
 
     <!-- 👥 我的家庭 -->
@@ -58,11 +57,11 @@
       <div class="card">
         <h2 class="card-title">家庭成员</h2>
         <div id="member-list"></div>
-        <button id="confirm-purchase" class="big-button green">🛒 确认买齐，反向入库</button>
+        <button id="confirm-purchase" class="big-button green">🛒 买到</button>
       </div>
 
       <div class="card">
-        <h2 class="card-title">🗒️ 全家今日待买清单</h2>
+        <h2 class="card-title">🗒️ 购买清单</h2>
         <form id="add-item-form" class="add-item-bar">
           <input id="new-item-input" class="add-item-input" placeholder="食材和数量，如：猪肉 1斤" />
           <button type="submit" class="add-item-button">➕ 添加</button>
@@ -127,15 +126,6 @@
         <button type="submit" class="big-button green">加入这道菜</button>
       </form>
       <button id="dish-cancel" class="text-button">取消</button>
-    </div>
-  </div>
-
-  <!-- 生成待买清单的结果 -->
-  <div id="menu-result-modal" class="modal-mask" hidden>
-    <div class="modal-content">
-      <h2 class="modal-title">🛒 待买清单已更新</h2>
-      <div id="menu-result"></div>
-      <button id="menu-result-close" class="big-button green">好的</button>
     </div>
   </div>
 
@@ -206,10 +196,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=202610061820"></script>
-  <script src="foods.js?v=202610061820"></script>
-  <script src="recipes.js?v=202610061820"></script>
-  <script src="store.js?v=202610061820"></script>
-  <script src="app.js?v=202610061820"></script>
+  <script src="firebase-config.js?v=202610061835"></script>
+  <script src="foods.js?v=202610061835"></script>
+  <script src="recipes.js?v=202610061835"></script>
+  <script src="store.js?v=202610061835"></script>
+  <script src="app.js?v=202610061835"></script>
 </body>
 </html>
