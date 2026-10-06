@@ -814,6 +814,30 @@
     document.querySelector('link[rel=manifest]').href = URL.createObjectURL(blob);
   }
 
+  // ---------- 🔄 自动更新到新版本 ----------
+  // 手机（尤其是添加到主屏幕的图标）会把网页存起来，发布新版后可能还在用旧的
+  // 所以每次打开或切回来时，去网上问一下最新版本号；不一样就带着新版本号重新打开一次
+  async function checkForUpdate() {
+    try {
+      const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const latest = (await res.json()).version;
+      const current = String(window.APP_VERSION || '').replace('?v=', '');
+      const url = new URL(location.href);
+      // 已经带着这个版本号打开过了就不再跳，防止网站还没完全更新好时反复刷新
+      if (latest && current && latest !== current && url.searchParams.get('v') !== latest) {
+        url.searchParams.set('v', latest); // 网址变了，手机就不会再用存着的旧网页
+        location.replace(url.toString());
+      }
+    } catch (err) {
+      // 没网的时候就先用现在的版本
+    }
+  }
+  checkForUpdate();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdate();
+  });
+
   // ---------- 启动 ----------
   function renderAll() {
     renderFridge();
