@@ -1,7 +1,7 @@
 // 张家大冰箱网页版：页面逻辑
-// 功能和小程序一一对应：冰箱（吃光了）、家庭（待买清单、反向入库）、营养大盘
+// 冰箱（吃多少记多少、冷藏/冷冻）、家庭（待买清单、反向入库）、营养大盘
 (function () {
-  const { estimateNutrition, todayString } = window.Nutrition;
+  const { parseItem, nutritionFor, shelfDays, canFreeze, formatQty, todayString } = window.Foods;
   const $ = (id) => document.getElementById(id);
 
   // 每人每天的参考摄入量（成年人粗略估算），全家参考量 = 每人参考量 × 家庭成员人数
@@ -61,6 +61,33 @@
 
   // ---------- 🏠 共享大冰箱 ----------
 
+  // 把日期往后推几天，返回 2026-10-10 这样的格式
+  function addDays(dateString, days) {
+    const d = new Date(dateString + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  // 旧数据的数量写在名字里（如 "🥚 农家土鸡蛋 (10个)"），这里统一拆成 名字 + 数量 + 单位
+  function normalizeFood(food) {
+    let f = food;
+    if (f.qty == null) {
+      const parsed = parseItem(f.name);
+      f = Object.assign({}, f, { name: parsed.name, qty: parsed.qty, unit: parsed.unit });
+    }
+    if (!f.storage) f = Object.assign({}, f, { storage: '冷藏' });
+    return f;
+  }
+
+  function getFoods() {
+    return Store.get('foodList').map(normalizeFood);
+  }
+
+  function saveFoods(foods) {
+    Store.set('foodList', foods);
+  }
+
   // 根据保质期算出还剩几天，以及显示的颜色
   function remainingInfo(expireDate) {
     const today = new Date(todayString() + 'T00:00:00');
@@ -75,9 +102,9 @@
 
   function renderFridge() {
     // 快过期的排在前面
-    const foods = Store.get('foodList')
-      .slice()
-      .sort((a, b) => (a.expireDate < b.expireDate ? -1 : a.expireDate > b.expireDate ? 1 : 0));
+    const foods = getFoods().sort((a, b) =>
+      a.expireDate < b.expireDate ? -1 : a.expireDate > b.expireDate ? 1 : 0
+    );
 
     if (foods.length === 0) {
       $('food-list').innerHTML = '<p class="empty-text">冰箱空空的。去"我的家庭"把买到的食材入库吧。</p>';
@@ -88,34 +115,98 @@
       .map((food) => {
         const remain = remainingInfo(food.expireDate);
         const badge = OWNER_AVATARS[food.owner] && food.owner !== '全家' ? OWNER_AVATARS[food.owner] : '';
+        const frozen = food.storage === '冷冻';
+        const freezeButton = canFreeze(food.name)
+          ? `<button class="small-button" data-action="storage" data-id="${escapeHtml(food.id)}">${frozen ? '🧊 改冷藏' : '❄️ 冻起来'}</button>`
+          : '';
         return `
           <div class="food-card">
             ${badge ? `<span class="member-badge">${badge}</span>` : ''}
             <div class="food-info">
-              <div class="food-name">${escapeHtml(food.name)}</div>
+              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${formatQty(food.qty)}${escapeHtml(food.unit)}</span></div>
               <div class="food-details">
-                <span class="remaining-days ${remain.cls}">${remain.text}</span>
+                <span class="storage-tag ${frozen ? 'frozen' : ''}">${frozen ? '❄️ 冷冻' : '🧊 冷藏'}</span>
+                <label class="remaining-days ${remain.cls}" title="点一下修改到期日">
+                  ${remain.text} ✏️
+                  <input type="date" class="date-input" data-id="${escapeHtml(food.id)}" value="${escapeHtml(food.expireDate)}" />
+                </label>
                 <span class="added-by">[👤 ${escapeHtml(food.addedBy)}]</span>
               </div>
+              ${freezeButton}
             </div>
-            <button class="finish-button" data-id="${escapeHtml(food.id)}">吃光了</button>
+            <button class="finish-button" data-action="eat" data-id="${escapeHtml(food.id)}">吃了</button>
           </div>`;
       })
       .join('');
   }
 
-  // 点"吃光了"：先记下吃掉的营养，再从冰箱里移除
-  $('food-list').addEventListener('click', (e) => {
-    const button = e.target.closest('.finish-button');
-    if (!button) return;
-    const foodList = Store.get('foodList');
-    const food = foodList.find((item) => item.id === button.dataset.id);
-    if (!food) return;
+  // 冷藏 ⇄ 冷冻：从今天起按新的存放方式重新计算到期日
+  function toggleStorage(id) {
+    const foods = getFoods().map((f) => {
+      if (f.id !== id) return f;
+      const storage = f.storage === '冷冻' ? '冷藏' : '冷冻';
+      return Object.assign({}, f, { storage, expireDate: addDays(todayString(), shelfDays(f.name, storage)) });
+    });
+    saveFoods(foods);
+    const food = foods.find((f) => f.id === id);
+    showToast(`${food.name}已${food.storage === '冷冻' ? '放进冷冻室' : '改为冷藏'}，到期日已更新`, 2000);
+  }
 
-    const nutrition = estimateNutrition(food.name);
+  $('food-list').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+    if (button.dataset.action === 'eat') openEatModal(button.dataset.id);
+    if (button.dataset.action === 'storage') toggleStorage(button.dataset.id);
+  });
+
+  // 手动修改到期日
+  $('food-list').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('date-input') || !e.target.value) return;
+    const id = e.target.dataset.id;
+    saveFoods(getFoods().map((f) => (f.id === id ? Object.assign({}, f, { expireDate: e.target.value }) : f)));
+    showToast('到期日已修改');
+  });
+
+  // ---------- 🍽️ 吃了多少 ----------
+  let eatingId = null;
+
+  function openEatModal(id) {
+    const food = getFoods().find((f) => f.id === id);
+    if (!food) return;
+    eatingId = id;
+    $('eat-title').textContent = `🍽️ ${food.name}`;
+    $('eat-left').textContent = `冰箱里还有 ${formatQty(food.qty)}${food.unit}，这次吃了多少？`;
+    $('eat-unit').textContent = food.unit;
+    $('eat-amount').value = '';
+    // 快捷按钮：全部、一半，数量大于 1 时再给一个"1 个单位"
+    const quick = [
+      { label: '全部吃光', qty: food.qty },
+      { label: '吃了一半', qty: food.qty / 2 },
+    ];
+    if (food.qty > 1) quick.push({ label: `吃了 1${food.unit}`, qty: 1 });
+    $('eat-quick').innerHTML = quick
+      .map((q) => `<button class="who-option" data-qty="${q.qty}">${escapeHtml(q.label)}</button>`)
+      .join('');
+    $('eat-modal').hidden = false;
+  }
+
+  function eatAmount(qty) {
+    const foods = getFoods();
+    const food = foods.find((f) => f.id === eatingId);
+    if (!food) return;
+    if (!(qty > 0)) {
+      showToast('请填写吃了多少');
+      return;
+    }
+    // 不能吃得比冰箱里还多
+    const eaten = Math.min(qty, food.qty);
+    const left = Math.round((food.qty - eaten) * 100) / 100;
+    const nutrition = nutritionFor(food.name, eaten, food.unit);
     const record = {
       id: `eaten-${Date.now()}`,
       name: food.name,
+      qty: eaten,
+      unit: food.unit,
       owner: food.owner || '全家',
       kcal: nutrition.kcal,
       protein: nutrition.protein,
@@ -123,31 +214,34 @@
       date: todayString(),
     };
     Store.set('eatenLog', Store.get('eatenLog').concat(record));
-    Store.set('foodList', foodList.filter((item) => item.id !== food.id));
+    // 吃完了就从冰箱拿掉，没吃完就留下剩余的量
+    saveFoods(
+      left > 0
+        ? foods.map((f) => (f.id === food.id ? Object.assign({}, f, { qty: left }) : f))
+        : foods.filter((f) => f.id !== food.id)
+    );
+    $('eat-modal').hidden = true;
 
+    const amountText = `${formatQty(eaten)}${food.unit}`;
+    const leftText = left > 0 ? `，还剩 ${formatQty(left)}${food.unit}` : '，已吃光';
     showToast(
       record.known
-        ? `吃光了！+${record.kcal} 千卡，蛋白质 ${record.protein} 克`
-        : '已吃光（这个食材的营养还没收录）'
+        ? `吃了 ${amountText}：+${record.kcal} 千卡，蛋白质 ${record.protein} 克${leftText}`
+        : `吃了 ${amountText}（营养还没收录）${leftText}`,
+      2500
     );
-  });
+  }
 
-  // 拍照录入：目前只显示照片，识别食材以后再做
-  $('photo-input').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const preview = $('photo-preview');
-    preview.src = URL.createObjectURL(file);
-    preview.hidden = false;
-    showToast('照片获取成功！');
+  $('eat-quick').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-qty]');
+    if (button) eatAmount(parseFloat(button.dataset.qty));
   });
-
-  // 剩菜盲盒
-  $('open-blind-box').addEventListener('click', () => {
-    $('recipe-modal').hidden = false;
+  $('eat-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    eatAmount(parseFloat($('eat-amount').value));
   });
-  $('close-modal').addEventListener('click', () => {
-    $('recipe-modal').hidden = true;
+  $('eat-cancel').addEventListener('click', () => {
+    $('eat-modal').hidden = true;
   });
 
   // ---------- 👥 我的家庭 ----------
@@ -229,14 +323,21 @@
       showToast('没有勾选任何已购买物品', 2000);
       return;
     }
-    const newFoods = bought.map((item, i) => ({
-      id: `${item.id}-${Date.now()}-${i}`,
-      name: item.name,
-      expireDate: Store.daysFromToday(7),
-      addedBy: `${myName()}买入`,
-      owner: '全家',
-    }));
-    Store.set('foodList', Store.get('foodList').concat(newFoods));
+    const newFoods = bought.map((item, i) => {
+      const parsed = parseItem(item.name);
+      return {
+        id: `${item.id}-${Date.now()}-${i}`,
+        name: parsed.name,
+        qty: parsed.qty,
+        unit: parsed.unit,
+        storage: '冷藏',
+        // 按食材自己的冷藏天数算到期日，比如鱼 2 天、鸡蛋 30 天
+        expireDate: addDays(todayString(), shelfDays(parsed.name, '冷藏')),
+        addedBy: `${myName()}买入`,
+        owner: '全家',
+      };
+    });
+    saveFoods(getFoods().concat(newFoods));
     Store.set('shoppingList', items.filter((item) => !item.bought));
     showToast(`${bought.map((item) => shortName(item.name)).join('、')}已入库！可前往"共享大冰箱"查看`, 2500);
   });
@@ -361,7 +462,7 @@
       .map(
         (r) => `
           <div class="row">
-            <span class="row-name">${escapeHtml(r.name)}</span>
+            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${formatQty(r.qty)}${escapeHtml(r.unit)}</span>` : ''}</span>
             ${
               r.known
                 ? `<span class="row-numbers">${r.kcal} 千卡 · ${r.protein} 克</span>`

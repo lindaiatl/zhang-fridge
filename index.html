@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610061748" />
+  <link rel="stylesheet" href="style.css?v=202610061815" />
 </head>
 <body>
   <header class="top-bar">张家大冰箱</header>
@@ -24,16 +24,9 @@
     <section id="page-fridge" class="page active">
       <p class="welcome-text">欢迎来到张家大冰箱！这里将是你的家庭智能食物管家。</p>
 
-      <label class="big-button blue">
-        📸 拍照录入食材
-        <input id="photo-input" type="file" accept="image/*" capture="environment" hidden />
-      </label>
-      <img id="photo-preview" class="preview-image" alt="食材照片" hidden />
-
-      <button id="open-blind-box" class="big-button green">开启剩菜盲盒</button>
-
       <div class="card">
-        <h2 class="card-title">今日快过期食材</h2>
+        <h2 class="card-title">冰箱里的食材</h2>
+        <p class="hint-text">快过期的排在最前面。点 ✏️ 可以改到期日。</p>
         <div id="food-list"></div>
       </div>
     </section>
@@ -58,7 +51,7 @@
       <div class="card">
         <h2 class="card-title">🗒️ 全家今日待买清单</h2>
         <form id="add-item-form" class="add-item-bar">
-          <input id="new-item-input" class="add-item-input" placeholder="输入全家需要买的食材..." />
+          <input id="new-item-input" class="add-item-input" placeholder="食材和数量，如：猪肉 1斤" />
           <button type="submit" class="add-item-button">➕ 添加</button>
         </form>
         <div id="shopping-list"></div>
@@ -108,20 +101,19 @@
     <button class="tab" data-page="nutrition">📊 营养大盘</button>
   </nav>
 
-  <!-- 剩菜盲盒弹窗 -->
-  <div id="recipe-modal" class="modal-mask" hidden>
+  <!-- 吃了多少 -->
+  <div id="eat-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">🌟 AI 管家今日盲盒推荐</h2>
-      <p class="recipe-name">✨ 慢煎和牛伴熟成牛乳酱</p>
-      <p class="recipe-inspiration">利用冰箱现有的澳洲和牛与牛奶制作。</p>
-      <h3 class="steps-title">盲盒烹饪步骤</h3>
-      <ol class="recipe-steps">
-        <li>澳洲和牛解冻，用厨房纸吸干表面水分。</li>
-        <li>热锅下少许黄油，大火将和牛两面各煎 2 分钟封锁肉汁。</li>
-        <li>不用洗锅，直接倒入半盒特仑苏牛奶微火熬稠。</li>
-        <li>将浓郁的牛乳酱淋在和牛上即可享用！</li>
-      </ol>
-      <button id="close-modal" class="big-button green">超级赞！收下菜谱</button>
+      <h2 id="eat-title" class="modal-title"></h2>
+      <p id="eat-left" class="recipe-inspiration"></p>
+      <div id="eat-quick" class="who-options"></div>
+      <p class="or-text">—— 或者自己填 ——</p>
+      <form id="eat-form" class="add-item-bar">
+        <input id="eat-amount" class="add-item-input" type="number" inputmode="decimal" min="0" step="any" placeholder="吃了多少" />
+        <span id="eat-unit" class="unit-label"></span>
+        <button type="submit" class="add-item-button">确定</button>
+      </form>
+      <button id="eat-cancel" class="text-button">取消</button>
     </div>
   </div>
 
@@ -176,9 +168,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=202610061748"></script>
-  <script src="nutrition.js?v=202610061748"></script>
-  <script src="store.js?v=202610061748"></script>
-  <script src="app.js?v=202610061748"></script>
+  <script src="firebase-config.js?v=202610061815"></script>
+  <script src="foods.js?v=202610061815"></script>
+  <script src="store.js?v=202610061815"></script>
+  <script src="app.js?v=202610061815"></script>
 </body>
 </html>
