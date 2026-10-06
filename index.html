@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610052217" />
+  <link rel="stylesheet" href="style.css?v=202610061748" />
 </head>
 <body>
   <header class="top-bar">张家大冰箱</header>
@@ -46,6 +46,7 @@
         <div class="family-id-label">家庭唯一 Family ID：</div>
         <div id="family-id" class="family-id">📌 本机模式</div>
         <div id="sync-status" class="sync-status"></div>
+        <button id="switch-family" class="switch-family-button">🔄 切换到别的家庭</button>
       </div>
 
       <div class="card">
@@ -136,10 +137,29 @@
     </div>
   </div>
 
+  <!-- 这台设备还没加入家庭：加入已有家庭，或创建新家庭 -->
+  <div id="family-modal" class="modal-mask" hidden>
+    <div class="modal-content">
+      <h2 class="modal-title">🧊 欢迎来到张家大冰箱</h2>
+      <p class="recipe-inspiration">家里已经有人在用了？输入家人「我的家庭」页面上的 Family ID，就能进入同一个冰箱。</p>
+      <form id="join-form" class="add-item-bar">
+        <input id="join-input" class="add-item-input" placeholder="输入家庭编号，10 位字母和数字" maxlength="16" autocapitalize="characters" autocomplete="off" />
+        <button type="submit" class="add-item-button">加入</button>
+      </form>
+      <p class="or-text">—— 或者 ——</p>
+      <button id="create-family" class="big-button green">🏠 我是第一个，创建我们家的冰箱</button>
+    </div>
+  </div>
+
   <!-- 第一次进入家庭时选称呼 -->
   <div id="who-modal" class="modal-mask" hidden>
     <div class="modal-content">
       <h2 class="modal-title">👋 欢迎加入张家大冰箱</h2>
+      <div id="claim-section" hidden>
+        <p class="recipe-inspiration">你以前在这个家庭里用过吗？点自己的名字认回来：</p>
+        <div id="claim-options" class="who-options"></div>
+        <p class="or-text">—— 新成员请选称呼 ——</p>
+      </div>
       <p class="recipe-inspiration">你是家里的谁？选一个称呼，家人就能认出你。</p>
       <div id="who-options" class="who-options"></div>
       <form id="who-form" class="add-item-bar">
@@ -156,9 +176,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=202610052217"></script>
-  <script src="nutrition.js?v=202610052217"></script>
-  <script src="store.js?v=202610052217"></script>
-  <script src="app.js?v=202610052217"></script>
+  <script src="firebase-config.js?v=202610061748"></script>
+  <script src="nutrition.js?v=202610061748"></script>
+  <script src="store.js?v=202610061748"></script>
+  <script src="app.js?v=202610061748"></script>
 </body>
 </html>

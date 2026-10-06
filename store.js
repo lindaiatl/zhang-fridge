@@ -58,10 +58,25 @@
   const cloudConfig = window.FIREBASE_CONFIG;
   const isCloud = !!(cloudConfig && cloudConfig.apiKey && window.firebase);
 
-  // 家庭 ID：优先用邀请链接里的 ?family=xxx，其次用这台设备上次的家庭，都没有就新建一个家庭
-  const urlFamily = new URLSearchParams(location.search).get('family');
-  const familyId = isCloud ? (urlFamily || read('fridge.familyId', null) || randomId(10)) : 'LOCAL';
-  if (isCloud) write('fridge.familyId', familyId);
+  // 家庭编号统一成大写、去掉空格，手动输入时不用在意大小写
+  function normalizeId(id) {
+    return String(id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  // 家庭 ID：优先用网址里的 ?family=xxx，其次用这台设备上次的家庭
+  // 都没有时不再悄悄新建家庭，而是请用户选择"加入已有家庭"或"创建新家庭"
+  // （iPhone 桌面图标和 Safari 的存储互不相通，悄悄新建会让家人各自进到不同的冰箱）
+  const urlFamily = normalizeId(new URLSearchParams(location.search).get('family'));
+  const familyId = isCloud ? urlFamily || read('fridge.familyId', null) : 'LOCAL';
+  if (isCloud && familyId) {
+    write('fridge.familyId', familyId);
+    // 把家庭编号放进网址：这样"添加到主屏幕"时，桌面图标记住的就是带家庭编号的网址
+    if (urlFamily !== familyId) {
+      const url = new URL(location.href);
+      url.searchParams.set('family', familyId);
+      history.replaceState(null, '', url.toString());
+    }
+  }
 
   // 这台设备的编号，用来认出"我"是成员列表里的哪一位
   let deviceId = read('fridge.deviceId', null);
@@ -91,19 +106,23 @@
   let readyResolve;
   const ready = new Promise((resolve) => (readyResolve = resolve));
 
-  if (isCloud) {
-    firebase.initializeApp(cloudConfig);
-    const db = firebase.firestore();
+  let db = null;
+  // 匿名登录：不需要账号密码，只是让云端知道这是一位真实访客
+  const signIn = isCloud
+    ? (firebase.initializeApp(cloudConfig), (db = firebase.firestore()), firebase.auth().signInAnonymously())
+    : null;
+
+  if (isCloud && !familyId) {
+    // 这台设备还没加入任何家庭：先不连数据，等用户选择
+    readyResolve('needs-family');
+  } else if (isCloud) {
     // 每个家庭在云端是 families/家庭ID/data/ 下面的 4 份数据
     docs = {};
     KEYS.forEach((key) => {
       docs[key] = db.collection('families').doc(familyId).collection('data').doc(key);
     });
 
-    // 匿名登录：不需要账号密码，只是让云端知道这是一位真实访客
-    firebase
-      .auth()
-      .signInAnonymously()
+    signIn
       .then(() => {
         let pending = KEYS.length;
         KEYS.forEach((key) => {
@@ -168,6 +187,36 @@
     // 页面注册监听，数据一变就重新渲染
     watch(fn) {
       listeners.push(fn);
+    },
+
+    newFamilyId() {
+      return randomId(10);
+    },
+
+    normalizeId,
+
+    // 查一下这个家庭编号在云端是否真的存在（防止输错编号进到一个空冰箱）
+    async familyExists(id) {
+      if (!isCloud) return false;
+      await signIn;
+      const snap = await db.collection('families').doc(normalizeId(id)).collection('data').doc('members').get();
+      return snap.exists;
+    },
+
+    // 换到另一个家庭：带着新编号重新打开网页
+    switchFamily(id) {
+      const url = new URL(location.href);
+      url.search = '';
+      url.hash = '';
+      url.searchParams.set('family', normalizeId(id));
+      write('fridge.familyId', normalizeId(id));
+      location.href = url.toString();
+    },
+
+    // "我就是列表里的这一位"：换手机、或从桌面图标打开时认回自己，不会多出一个重复的成员
+    claimMember(memberId) {
+      write('fridge.deviceId', memberId);
+      location.reload();
     },
 
     // 邀请链接：带上家庭 ID，家人点开就进到同一个冰箱

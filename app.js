@@ -408,6 +408,86 @@
     joinFamily($('who-input').value);
   });
 
+  // ---------- 🔄 加入 / 切换家庭 ----------
+
+  // 先确认编号对应的家庭真的存在，再切换过去，防止输错编号进到一个空冰箱
+  async function joinFamilyById(rawId) {
+    const id = Store.normalizeId(rawId);
+    if (id.length < 10) {
+      showToast('家庭编号是 10 位字母和数字，请再核对一下', 2500);
+      return;
+    }
+    if (id === Store.familyId) {
+      showToast('你已经在这个家庭里了');
+      return;
+    }
+    showToast('正在查找这个家庭…', 5000);
+    try {
+      if (!(await Store.familyExists(id))) {
+        showToast('没找到这个家庭，请核对编号（看家人「我的家庭」黄色卡片）', 3500);
+        return;
+      }
+    } catch (err) {
+      showToast('网络连接失败，请稍后再试', 2500);
+      return;
+    }
+    Store.switchFamily(id);
+  }
+
+  $('join-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    joinFamilyById($('join-input').value);
+  });
+
+  $('create-family').addEventListener('click', () => {
+    if (confirm('确定要创建一个新的家庭冰箱吗？\n如果家人已经在用了，请改为输入他们的家庭编号加入。')) {
+      Store.switchFamily(Store.newFamilyId());
+    }
+  });
+
+  $('switch-family').addEventListener('click', () => {
+    const id = prompt('输入要切换到的家庭编号（在家人「我的家庭」黄色卡片上）：');
+    if (id) joinFamilyById(id);
+  });
+
+  // 选称呼时，如果家庭里已经有成员，先让用户看看是不是"认回自己"
+  function showWhoModal() {
+    const members = Store.get('members');
+    $('claim-section').hidden = members.length === 0;
+    $('claim-options').innerHTML = members
+      .map(
+        (m) =>
+          `<button class="who-option" data-member="${escapeHtml(m.id)}">${escapeHtml(m.avatar)} 我是${escapeHtml(m.name)}</button>`
+      )
+      .join('');
+    $('who-modal').hidden = false;
+  }
+
+  $('claim-options').addEventListener('click', (e) => {
+    const button = e.target.closest('.who-option');
+    if (button) Store.claimMember(button.dataset.member);
+  });
+
+  // 让"添加到主屏幕"的图标也带着家庭编号打开（安卓 Chrome 会读这个设置）
+  function updateManifest() {
+    const base = new URL('./', location.href).toString();
+    const manifest = {
+      name: '张家大冰箱',
+      short_name: '大冰箱',
+      start_url: Store.inviteUrl(),
+      scope: base,
+      display: 'standalone',
+      background_color: '#f7f7f7',
+      theme_color: '#4CAF50',
+      icons: [
+        { src: base + 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: base + 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    document.querySelector('link[rel=manifest]').href = URL.createObjectURL(blob);
+  }
+
   // ---------- 启动 ----------
   function renderAll() {
     renderFridge();
@@ -419,12 +499,19 @@
   Store.watch(renderAll);
   renderAll();
 
-  // 云端模式：等云端数据到了，看看"我"是不是已经在家庭成员里，不在就请选称呼
+  // 云端模式：先确认这台设备在哪个家庭，再看"我"是不是已经在家庭成员里
   if (Store.isCloud) {
     $('sync-status').textContent = '☁️ 正在连接云端…';
     Store.ready.then((ok) => {
+      if (ok === 'needs-family') {
+        $('family-modal').hidden = false;
+        return;
+      }
+      updateManifest();
       $('sync-status').textContent = ok ? '☁️ 已和家人实时同步' : '⚠️ 云端连接失败，暂时只保存在本机';
-      if (ok && !me()) $('who-modal').hidden = false;
+      if (ok && !me()) showWhoModal();
     });
+  } else {
+    $('switch-family').hidden = true;
   }
 })();

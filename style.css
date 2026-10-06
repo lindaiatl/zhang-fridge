@@ -565,3 +565,24 @@ main {
   font-size: 15px;
   padding: 8px 16px;
 }
+
+.switch-family-button {
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+.switch-family-button[hidden] {
+  display: none;
+}
+
+.or-text {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 14px 0;
+}
