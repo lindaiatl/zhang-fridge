@@ -257,27 +257,49 @@
     showToast(`已改成「${name}」`);
   });
 
-  // 邀请新成员：手机上弹出系统分享，电脑上复制链接
-  $('invite-button').addEventListener('click', async () => {
+  // 邀请新成员：弹出邀请窗，可以复制邀请文字（最稳，微信里直接粘贴）或用手机分享
+  function inviteText() {
+    return `📢 滴！这是我们家的专属冰箱，点链接加入，一起管剩菜啦！\n${Store.inviteUrl()}`;
+  }
+
+  $('invite-button').addEventListener('click', () => {
     if (!Store.isCloud) {
       showToast('还没接入云端，现在邀请家人也看不到同一个冰箱', 2500);
       return;
     }
-    const shareData = {
-      title: '张家大冰箱',
-      text: `📢 滴！这是我们家的专属冰箱 Family ID [${Store.familyId}]，快点进来一起管剩菜啦！`,
-      url: Store.inviteUrl(),
-    };
+    $('invite-link').textContent = Store.inviteUrl();
+    // 手机不支持系统分享时，隐藏"更多分享方式"
+    $('invite-share').hidden = !navigator.share;
+    $('invite-modal').hidden = false;
+  });
+
+  $('invite-copy').addEventListener('click', async () => {
+    const text = inviteText();
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        return;
-      }
-      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-      showToast('邀请链接已复制，发给家人就行', 2000);
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      // 老浏览器不支持剪贴板接口时，用传统方式复制
+      const area = document.createElement('textarea');
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+    }
+    showToast('已复制！打开微信，在聊天框里长按粘贴发给家人', 3000);
+  });
+
+  // 只分享链接本身：微信的分享入口同时收到文字和链接时会报错
+  $('invite-share').addEventListener('click', async () => {
+    try {
+      await navigator.share({ title: '张家大冰箱', url: Store.inviteUrl() });
     } catch (err) {
       // 用户取消分享时不用提示
     }
+  });
+
+  $('invite-close').addEventListener('click', () => {
+    $('invite-modal').hidden = true;
   });
 
   // ---------- 📊 营养大盘 ----------

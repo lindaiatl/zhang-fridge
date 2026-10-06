@@ -541,3 +541,27 @@ main {
   font-size: 13px;
   color: #666;
 }
+
+.invite-link {
+  background: #f1f8e9;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  word-break: break-all;
+  color: #2e7d32;
+  margin: 0 0 6px;
+}
+
+.big-button[hidden] {
+  display: none;
+}
+
+.text-button {
+  display: block;
+  margin: 6px auto 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 8px 16px;
+}

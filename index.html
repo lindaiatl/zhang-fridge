@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610052215" />
+  <link rel="stylesheet" href="style.css?v=202610052217" />
 </head>
 <body>
   <header class="top-bar">张家大冰箱</header>
@@ -124,6 +124,18 @@
     </div>
   </div>
 
+  <!-- 邀请家人 -->
+  <div id="invite-modal" class="modal-mask" hidden>
+    <div class="modal-content">
+      <h2 class="modal-title">✉️ 邀请家人加入</h2>
+      <p class="recipe-inspiration">把下面的邀请链接发给家人，他们点开就能进入同一个冰箱。</p>
+      <p id="invite-link" class="invite-link"></p>
+      <button id="invite-copy" class="big-button green">📋 复制邀请（发微信用这个）</button>
+      <button id="invite-share" class="big-button blue">📤 用其他方式分享</button>
+      <button id="invite-close" class="text-button">关闭</button>
+    </div>
+  </div>
+
   <!-- 第一次进入家庭时选称呼 -->
   <div id="who-modal" class="modal-mask" hidden>
     <div class="modal-content">
@@ -144,9 +156,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=202610052215"></script>
-  <script src="nutrition.js?v=202610052215"></script>
-  <script src="store.js?v=202610052215"></script>
-  <script src="app.js?v=202610052215"></script>
+  <script src="firebase-config.js?v=202610052217"></script>
+  <script src="nutrition.js?v=202610052217"></script>
+  <script src="store.js?v=202610052217"></script>
+  <script src="app.js?v=202610052217"></script>
 </body>
 </html>
