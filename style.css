@@ -649,3 +649,132 @@ label.remaining-days {
   font-size: 16px;
   color: #666;
 }
+
+/* ---------- 一周食谱 ---------- */
+.week-switch {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.week-button {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 16px;
+  padding: 6px 18px;
+  font-size: 14px;
+  color: #666;
+}
+
+.week-button.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.day-card {
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+
+.day-card.today {
+  box-shadow: 0 0 0 2px var(--green), 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.day-card.past {
+  opacity: 0.55;
+}
+
+.day-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.day-date {
+  font-weight: normal;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.meal-row {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid #f3f3f3;
+}
+
+.meal-label {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #666;
+  padding-top: 5px;
+  width: 34px;
+}
+
+.meal-dishes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dish-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 14px;
+  padding: 4px 6px 4px 10px;
+  font-size: 14px;
+}
+
+.chip-x {
+  border: none;
+  background: none;
+  color: #81c784;
+  font-size: 13px;
+  padding: 0 4px;
+}
+
+.add-dish {
+  border: 1px dashed #bbb;
+  background: #fff;
+  color: #888;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+.add-item-input.full {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+#dish-options {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.result-title {
+  font-weight: 600;
+  margin: 10px 0 4px;
+}
+
+.result-list {
+  margin: 0 0 8px;
+  line-height: 1.6;
+  color: var(--green);
+}
+
+.result-list.muted {
+  color: var(--muted);
+}
+
+/* 四个标签时字小一点，手机上放得下 */
+.tab {
+  font-size: 12px;
+  padding: 14px 2px;
+}

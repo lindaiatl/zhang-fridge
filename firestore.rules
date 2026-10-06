@@ -6,7 +6,7 @@ service cloud.firestore {
     match /families/{familyId}/data/{key} {
       allow get, create, update: if request.auth != null
         && familyId.size() >= 10
-        && key in ['foodList', 'shoppingList', 'eatenLog', 'members'];
+        && key in ['foodList', 'shoppingList', 'eatenLog', 'members', 'mealPlan'];
     }
   }
 }

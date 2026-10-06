@@ -2,7 +2,7 @@
 // - 没填 Firebase 配置时：数据只存在这台设备的浏览器里（localStorage）
 // - 填了 Firebase 配置后：数据存在云端，同一个家庭的所有人实时共享；浏览器里也留一份，打开时先显示
 (function () {
-  const KEYS = ['foodList', 'shoppingList', 'eatenLog', 'members'];
+  const KEYS = ['foodList', 'shoppingList', 'eatenLog', 'members', 'mealPlan'];
 
   // 把"几天后"换算成具体日期，例如 daysFromToday(5) → 5 天后的 2026-10-10
   function daysFromToday(days) {
@@ -24,6 +24,8 @@
         { id: 'eggs', name: '🥚 农家土鸡蛋 (10个)', requester: '妈妈需要', bought: false },
       ],
       eatenLog: [],
+      // 一周食谱：{ '2026-10-06': { 早餐: [菜, ...], 午餐: [菜, ...] }, ... }
+      mealPlan: {},
       // 云端模式下，成员是每个人打开时自己选称呼加进来的，所以一开始是空的
       members: cloud ? [] : [{ avatar: '👤', name: '我', role: '管理员' }],
     };
@@ -125,13 +127,14 @@
     signIn
       .then(() => {
         let pending = KEYS.length;
+        let coreFailed = false;
         KEYS.forEach((key) => {
           let first = true;
           // 实时监听：家里任何人改了数据，这里几秒内自动收到
           docs[key].onSnapshot(
             (snap) => {
               if (snap.exists) {
-                state[key] = snap.data().value || [];
+                state[key] = snap.data().value || defaults[key];
                 write(cacheKey(key), state[key]);
                 notify(key);
               } else if (first) {
@@ -140,14 +143,16 @@
               }
               if (first) {
                 first = false;
-                if (--pending === 0) readyResolve(true);
+                if (--pending === 0) readyResolve(!coreFailed);
               }
             },
             (err) => {
               console.error('云端同步失败', key, err);
+              // 冰箱清单连不上才算失败；其他某一项连不上（比如云端规则还没更新）不影响整体使用
+              if (key === 'foodList') coreFailed = true;
               if (first) {
                 first = false;
-                if (--pending === 0) readyResolve(false);
+                if (--pending === 0) readyResolve(!coreFailed);
               }
             }
           );
@@ -180,7 +185,12 @@
       write(cacheKey(key), value);
       notify(key);
       if (docs) {
-        docs[key].set({ value }).catch((err) => console.error('保存到云端失败', key, err));
+        try {
+          docs[key].set({ value }).catch((err) => console.error('保存到云端失败', key, err));
+        } catch (err) {
+          // 数据格式云端不接受时也不要让页面卡住
+          console.error('保存到云端失败', key, err);
+        }
       }
     },
 

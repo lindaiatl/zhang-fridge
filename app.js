@@ -1,7 +1,7 @@
 // 张家大冰箱网页版：页面逻辑
 // 冰箱（吃多少记多少、冷藏/冷冻）、家庭（待买清单、反向入库）、营养大盘
 (function () {
-  const { parseItem, nutritionFor, shelfDays, canFreeze, formatQty, todayString } = window.Foods;
+  const { parseItem, nutritionFor, shelfDays, canFreeze, toGrams, lookup, formatQty, todayString } = window.Foods;
   const $ = (id) => document.getElementById(id);
 
   // 每人每天的参考摄入量（成年人粗略估算），全家参考量 = 每人参考量 × 家庭成员人数
@@ -244,6 +244,218 @@
     $('eat-modal').hidden = true;
   });
 
+  // ---------- 📅 一周家庭食谱 ----------
+  const MEALS = ['早餐', '午餐'];
+  const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  // 按重量的单位：生成清单时保留一位小数；其他单位（个、盒…）向上取整
+  const WEIGHT_UNIT_SET = { 斤: true, 两: true, 公斤: true, 千克: true, kg: true, 克: true, g: true };
+  let weekOffset = 0; // 0 = 本周，1 = 下周
+  let pickingSlot = null; // 正在加菜的 { date, meal }
+
+  // 某一周的周一到周日
+  function weekDates(offset) {
+    const today = new Date(todayString() + 'T00:00:00');
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + offset * 7);
+    const pad = (n) => (n < 10 ? '0' + n : '' + n);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    });
+  }
+
+  function getPlan() {
+    return Store.get('mealPlan') || {};
+  }
+
+  function renderMenu() {
+    const plan = getPlan();
+    const dates = weekDates(weekOffset);
+    const today = todayString();
+    $('week-range').textContent = `${dates[0].slice(5)} ～ ${dates[6].slice(5)} · 每天排早餐和午餐`;
+    $('menu-days').innerHTML = dates
+      .map((date) => {
+        const d = new Date(date + 'T00:00:00');
+        const day = plan[date] || {};
+        const rows = MEALS.map((meal) => {
+          const chips = (day[meal] || [])
+            .map(
+              (dish, i) =>
+                `<span class="dish-chip">${escapeHtml(dish.name)}<button class="chip-x" data-action="remove" data-date="${date}" data-meal="${meal}" data-index="${i}" aria-label="删除">✕</button></span>`
+            )
+            .join('');
+          return `
+            <div class="meal-row">
+              <span class="meal-label">${meal}</span>
+              <div class="meal-dishes">
+                ${chips}
+                <button class="add-dish" data-action="add" data-date="${date}" data-meal="${meal}">＋ 加菜</button>
+              </div>
+            </div>`;
+        }).join('');
+        return `
+          <div class="card day-card ${date === today ? 'today' : ''} ${date < today ? 'past' : ''}">
+            <div class="day-title">${WEEKDAYS[d.getDay()]} <span class="day-date">${date.slice(5)}</span>${date === today ? ' <span class="me-tag">今天</span>' : ''}</div>
+            ${rows}
+          </div>`;
+      })
+      .join('');
+  }
+
+  document.querySelectorAll('.week-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      weekOffset = parseInt(button.dataset.week, 10);
+      document.querySelectorAll('.week-button').forEach((b) => b.classList.toggle('active', b === button));
+      renderMenu();
+    });
+  });
+
+  function setDishes(date, meal, update) {
+    const plan = Object.assign({}, getPlan());
+    const day = Object.assign({}, plan[date] || {});
+    day[meal] = update((day[meal] || []).slice());
+    plan[date] = day;
+    // 顺手清掉一个月以前的旧食谱，免得数据越存越多
+    const cutoff = addDays(todayString(), -30);
+    Object.keys(plan).forEach((k) => {
+      if (k < cutoff) delete plan[k];
+    });
+    Store.set('mealPlan', plan);
+  }
+
+  $('menu-days').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+    const { date, meal } = button.dataset;
+    if (button.dataset.action === 'remove') {
+      const index = parseInt(button.dataset.index, 10);
+      setDishes(date, meal, (dishes) => dishes.filter((_, i) => i !== index));
+    }
+    if (button.dataset.action === 'add') openDishModal(date, meal);
+  });
+
+  function openDishModal(date, meal) {
+    pickingSlot = { date, meal };
+    const d = new Date(date + 'T00:00:00');
+    $('dish-title').textContent = `给${WEEKDAYS[d.getDay()]}${meal}加菜`;
+    // 先列这一顿常吃的，再列另一顿的（早餐吃面条、午餐吃饺子也行）
+    const recipes = Recipes.list(meal).concat(Recipes.list().filter((r) => r.meal !== meal));
+    $('dish-options').innerHTML = recipes
+      .map((r) => `<button class="who-option" data-recipe="${escapeHtml(r.name)}">${escapeHtml(r.name)}</button>`)
+      .join('');
+    $('custom-dish-name').value = '';
+    $('custom-dish-items').value = '';
+    $('dish-modal').hidden = false;
+  }
+
+  function addDish(dish) {
+    const { date, meal } = pickingSlot;
+    setDishes(date, meal, (dishes) => dishes.concat(dish));
+    $('dish-modal').hidden = true;
+    showToast(`已加入：${dish.name}`);
+  }
+
+  $('dish-options').addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-recipe]');
+    if (!button) return;
+    const recipe = Recipes.find(button.dataset.recipe);
+    if (recipe) addDish({ name: recipe.name, items: recipe.items });
+  });
+
+  $('custom-dish-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('custom-dish-name').value.trim();
+    if (!name) {
+      showToast('请写菜名');
+      return;
+    }
+    addDish({ name, items: Recipes.parseIngredients($('custom-dish-items').value) });
+  });
+
+  $('dish-cancel').addEventListener('click', () => {
+    $('dish-modal').hidden = true;
+  });
+
+  // 同一种食材的"归类名"：猪肉、五花肉、肉末都算同一类，这样冰箱里有就能扣掉
+  function foodKey(name) {
+    const food = lookup(name);
+    return food.known ? food.keywords[0] : name.trim();
+  }
+
+  // 生成待买清单：今天以后排好的菜 → 需要的食材 → 扣掉冰箱里和清单里已有的 → 只加缺的
+  $('menu-to-shopping').addEventListener('click', () => {
+    const plan = getPlan();
+    const today = todayString();
+    const need = {}; // 归类名 → { name, unit, amount（能换算成克就按克，否则按单位个数）, byWeight }
+
+    weekDates(weekOffset)
+      .filter((date) => date >= today)
+      .forEach((date) => {
+        MEALS.forEach((meal) => {
+          ((plan[date] || {})[meal] || []).forEach((dish) => {
+            (dish.items || []).forEach(({ name, qty, unit }) => {
+              const key = foodKey(name);
+              const grams = toGrams(name, qty, unit);
+              if (!need[key]) need[key] = { name, unit, amount: 0, byWeight: grams > 0 };
+              const n = need[key];
+              n.amount += n.byWeight ? grams : unit === n.unit ? qty : 0;
+            });
+          });
+        });
+      });
+
+    if (Object.keys(need).length === 0) {
+      showToast(weekOffset === 0 ? '本周今天以后还没有排菜' : '下周还没有排菜', 2000);
+      return;
+    }
+
+    // 已经有的量：冰箱里的 + 待买清单里还没买的
+    const haveItems = getFoods()
+      .map((f) => ({ name: f.name, qty: f.qty, unit: f.unit }))
+      .concat(Store.get('shoppingList').filter((i) => !i.bought).map((i) => parseItem(i.name)));
+    function haveAmount(key, n) {
+      return haveItems.reduce((total, item) => {
+        if (foodKey(item.name) !== key) return total;
+        if (n.byWeight) return total + toGrams(item.name, item.qty, item.unit);
+        return item.unit === n.unit ? total + item.qty : total;
+      }, 0);
+    }
+
+    const added = [];
+    const enough = [];
+    const newItems = [];
+    Object.keys(need).forEach((key, i) => {
+      const n = need[key];
+      const shortage = n.amount - haveAmount(key, n);
+      if (shortage <= 0.0001) {
+        enough.push(n.name);
+        return;
+      }
+      // 换回原来的单位：按个数的向上取整，按重量的保留一位小数
+      let qty = n.byWeight ? shortage / toGrams(n.name, 1, n.unit) : shortage;
+      qty = WEIGHT_UNIT_SET[n.unit] ? Math.ceil(qty * 10 - 0.0001) / 10 : Math.ceil(qty - 0.0001);
+      const text = `${n.name} ${formatQty(qty)}${n.unit}`;
+      added.push(text);
+      newItems.push({ id: `menu-${Date.now()}-${i}`, name: text, requester: '本周食谱需要', bought: false });
+    });
+
+    if (newItems.length) Store.set('shoppingList', Store.get('shoppingList').concat(newItems));
+
+    $('menu-result').innerHTML =
+      (added.length
+        ? `<p class="result-title">已加入待买清单：</p><p class="result-list">${added.map(escapeHtml).join('、')}</p>`
+        : '<p class="result-title">不用买新的，食材都够了 👍</p>') +
+      (enough.length
+        ? `<p class="result-title">冰箱里或清单上已经有：</p><p class="result-list muted">${enough.map(escapeHtml).join('、')}</p>`
+        : '');
+    $('menu-result-modal').hidden = false;
+  });
+
+  $('menu-result-close').addEventListener('click', () => {
+    $('menu-result-modal').hidden = true;
+  });
+
   // ---------- 👥 我的家庭 ----------
 
   function renderFamily() {
@@ -430,7 +642,7 @@
     const kcalPercent = Math.min(100, Math.round((totalKcal / kcalGoal) * 100));
     const proteinPercent = Math.min(100, Math.round((totalProtein / proteinGoal) * 100));
 
-    $('today-text').textContent = `${today} · 今天全家吃光的食物`;
+    $('today-text').textContent = `${today} · 今天全家吃的食物`;
     $('total-kcal').textContent = totalKcal;
     $('total-protein').textContent = totalProtein;
     $('kcal-fill').style.width = kcalPercent + '%';
@@ -452,7 +664,7 @@
 
     if (todayRecords.length === 0) {
       $('eaten-list').innerHTML =
-        '<p class="empty-text">今天还没有吃光的食材。去"共享大冰箱"点"吃光了"，这里就会自动累加。</p>';
+        '<p class="empty-text">今天还没有记录。去"共享大冰箱"点"吃了"，这里就会自动累加。</p>';
       return;
     }
     // 最新吃的排在最上面
@@ -592,6 +804,7 @@
   // ---------- 启动 ----------
   function renderAll() {
     renderFridge();
+    renderMenu();
     renderFamily();
     renderNutrition();
   }

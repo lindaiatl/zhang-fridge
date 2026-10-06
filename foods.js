@@ -30,10 +30,20 @@
     { keywords: ['鱼'], unit: '条', grams: 500, kcal: 100, protein: 17, fridgeDays: 2, freezerDays: 90 },
 
     // 豆制品、主食
+    { keywords: ['豆浆'], unit: '盒', grams: 250, kcal: 31, protein: 3, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['油条'], unit: '根', grams: 80, kcal: 388, protein: 6.9, fridgeDays: 2, freezerDays: 30 },
+    { keywords: ['吐司'], unit: '袋', grams: 400, kcal: 278, protein: 8.8, fridgeDays: 5, freezerDays: 30 },
+    { keywords: ['面粉'], unit: '斤', grams: 500, kcal: 362, protein: 11.2, fridgeDays: 180, freezerDays: 0 },
+    { keywords: ['大米'], unit: '斤', grams: 500, kcal: 346, protein: 7.4, fridgeDays: 180, freezerDays: 0 },
+    { keywords: ['小米'], unit: '斤', grams: 500, kcal: 361, protein: 9, fridgeDays: 180, freezerDays: 0 },
+    { keywords: ['燕麦'], unit: '斤', grams: 500, kcal: 367, protein: 15, fridgeDays: 180, freezerDays: 0 },
+    { keywords: ['花生'], unit: '斤', grams: 500, kcal: 574, protein: 24.8, fridgeDays: 90, freezerDays: 0 },
+    { keywords: ['红薯'], unit: '个', grams: 250, kcal: 99, protein: 1.1, fridgeDays: 14, freezerDays: 0 },
+    { keywords: ['可乐'], unit: '瓶', grams: 500, kcal: 43, protein: 0, fridgeDays: 180, freezerDays: 0 },
     { keywords: ['豆腐'], unit: '块', grams: 300, kcal: 81, protein: 8.1, fridgeDays: 3, freezerDays: 30 },
     { keywords: ['饺子', '馄饨', '包子'], unit: '袋', grams: 500, kcal: 240, protein: 9, fridgeDays: 2, freezerDays: 90 },
     { keywords: ['米饭', '剩饭'], unit: '碗', grams: 200, kcal: 116, protein: 2.6, fridgeDays: 2, freezerDays: 30 },
-    { keywords: ['面包', '吐司'], unit: '个', grams: 80, kcal: 313, protein: 8.3, fridgeDays: 5, freezerDays: 30 },
+    { keywords: ['面包'], unit: '个', grams: 80, kcal: 313, protein: 8.3, fridgeDays: 5, freezerDays: 30 },
     { keywords: ['面条', '面'], unit: '份', grams: 200, kcal: 110, protein: 3.5, fridgeDays: 3, freezerDays: 30 },
     { keywords: ['剩菜'], unit: '份', grams: 300, kcal: 120, protein: 5, fridgeDays: 2, freezerDays: 30 },
 
@@ -48,6 +58,8 @@
     { keywords: ['蘑菇', '香菇', '金针菇'], unit: '份', grams: 200, kcal: 26, protein: 2.2, fridgeDays: 4, freezerDays: 0 },
     { keywords: ['青椒', '辣椒', '彩椒'], unit: '个', grams: 100, kcal: 22, protein: 1, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['茄子'], unit: '根', grams: 250, kcal: 23, protein: 1.1, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['大蒜', '蒜'], unit: '头', grams: 50, kcal: 128, protein: 4.5, fridgeDays: 30, freezerDays: 0 },
+    { keywords: ['葱', '姜', '香菜'], unit: '把', grams: 100, kcal: 30, protein: 1.6, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
 
     // 水果
@@ -66,7 +78,7 @@
 
   // 按重量计算的单位：1 个单位多少克
   const WEIGHT_UNITS = { 斤: 500, 两: 50, 公斤: 1000, 千克: 1000, kg: 1000, 克: 1, g: 1 };
-  const UNIT_PATTERN = '斤|两|公斤|千克|kg|克|g|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串';
+  const UNIT_PATTERN = '斤|两|公斤|千克|kg|克|g|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串|头';
 
   function lookup(name) {
     const food = FOODS.find((row) => row.keywords.some((word) => name.indexOf(word) !== -1));
@@ -135,6 +147,7 @@
     nutritionFor,
     shelfDays,
     canFreeze,
+    toGrams,
     formatQty,
     todayString,
   };
