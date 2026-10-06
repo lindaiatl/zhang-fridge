@@ -1,0 +1,12 @@
+rules_version = '2';
+// 张家大冰箱的云端安全规则：在 Firebase 控制台「Firestore → 规则」里整段粘贴后点「发布」
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 只允许读写某一个家庭的 4 份数据，并且必须知道家庭 ID；不允许列出所有家庭
+    match /families/{familyId}/data/{key} {
+      allow get, create, update: if request.auth != null
+        && familyId.size() >= 10
+        && key in ['foodList', 'shoppingList', 'eatenLog', 'members'];
+    }
+  }
+}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4CAF50" />
+  <title>张家大冰箱</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧊</text></svg>" />
+  <!-- 添加到手机主屏幕后的图标和全屏显示 -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="大冰箱" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top-bar">张家大冰箱</header>
+
+  <main>
+    <!-- 🏠 共享大冰箱 -->
+    <section id="page-fridge" class="page active">
+      <p class="welcome-text">欢迎来到张家大冰箱！这里将是你的家庭智能食物管家。</p>
+
+      <label class="big-button blue">
+        📸 拍照录入食材
+        <input id="photo-input" type="file" accept="image/*" capture="environment" hidden />
+      </label>
+      <img id="photo-preview" class="preview-image" alt="食材照片" hidden />
+
+      <button id="open-blind-box" class="big-button green">开启剩菜盲盒</button>
+
+      <div class="card">
+        <h2 class="card-title">今日快过期食材</h2>
+        <div id="food-list"></div>
+      </div>
+    </section>
+
+    <!-- 👥 我的家庭 -->
+    <section id="page-family" class="page">
+      <h1 class="page-title">🏡 张家大冰箱 · 家庭控制台</h1>
+
+      <div class="family-id-card">
+        <div class="family-id-label">家庭唯一 Family ID：</div>
+        <div id="family-id" class="family-id">📌 本机模式</div>
+        <div id="sync-status" class="sync-status"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">家庭成员</h2>
+        <div id="member-list"></div>
+        <button id="confirm-purchase" class="big-button green">🛒 确认买齐，反向入库</button>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">🗒️ 全家今日待买清单</h2>
+        <form id="add-item-form" class="add-item-bar">
+          <input id="new-item-input" class="add-item-input" placeholder="输入全家需要买的食材..." />
+          <button type="submit" class="add-item-button">➕ 添加</button>
+        </form>
+        <div id="shopping-list"></div>
+      </div>
+
+      <button id="invite-button" class="big-button orange">✉️ 邀请新成员加入家庭</button>
+    </section>
+
+    <!-- 📊 营养大盘 -->
+    <section id="page-nutrition" class="page">
+      <h1 class="page-title">📊 全家健康营养大盘</h1>
+      <p id="today-text" class="sub-text"></p>
+
+      <div class="total-card">
+        <div class="total-item">
+          <div class="total-label">🔥 总热量</div>
+          <div class="total-value"><span id="total-kcal">0</span><span class="total-unit"> 千卡</span></div>
+          <div class="progress-bar"><div id="kcal-fill" class="progress-fill kcal-fill"></div></div>
+          <div id="kcal-goal" class="goal-text"></div>
+        </div>
+        <div class="total-item">
+          <div class="total-label">💪 蛋白质</div>
+          <div class="total-value"><span id="total-protein">0</span><span class="total-unit"> 克</span></div>
+          <div class="progress-bar"><div id="protein-fill" class="progress-fill protein-fill"></div></div>
+          <div id="protein-goal" class="goal-text"></div>
+        </div>
+      </div>
+
+      <div id="member-stats-card" class="card" hidden>
+        <h2 class="card-title left">👥 每个人</h2>
+        <div id="member-stats"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title left">🍽️ 今天吃光的食材</h2>
+        <div id="eaten-list"></div>
+      </div>
+
+      <p class="note-text">营养数值是按常见食材估算的参考值，不是精确数据。</p>
+    </section>
+  </main>
+
+  <!-- 底部标签栏 -->
+  <nav class="tab-bar">
+    <button class="tab active" data-page="fridge">🏠 共享大冰箱</button>
+    <button class="tab" data-page="family">👥 我的家庭</button>
+    <button class="tab" data-page="nutrition">📊 营养大盘</button>
+  </nav>
+
+  <!-- 剩菜盲盒弹窗 -->
+  <div id="recipe-modal" class="modal-mask" hidden>
+    <div class="modal-content">
+      <h2 class="modal-title">🌟 AI 管家今日盲盒推荐</h2>
+      <p class="recipe-name">✨ 慢煎和牛伴熟成牛乳酱</p>
+      <p class="recipe-inspiration">利用冰箱现有的澳洲和牛与牛奶制作。</p>
+      <h3 class="steps-title">盲盒烹饪步骤</h3>
+      <ol class="recipe-steps">
+        <li>澳洲和牛解冻，用厨房纸吸干表面水分。</li>
+        <li>热锅下少许黄油，大火将和牛两面各煎 2 分钟封锁肉汁。</li>
+        <li>不用洗锅，直接倒入半盒特仑苏牛奶微火熬稠。</li>
+        <li>将浓郁的牛乳酱淋在和牛上即可享用！</li>
+      </ol>
+      <button id="close-modal" class="big-button green">超级赞！收下菜谱</button>
+    </div>
+  </div>
+
+  <!-- 第一次进入家庭时选称呼 -->
+  <div id="who-modal" class="modal-mask" hidden>
+    <div class="modal-content">
+      <h2 class="modal-title">👋 欢迎加入张家大冰箱</h2>
+      <p class="recipe-inspiration">你是家里的谁？选一个称呼，家人就能认出你。</p>
+      <div id="who-options" class="who-options"></div>
+      <form id="who-form" class="add-item-bar">
+        <input id="who-input" class="add-item-input" placeholder="或者自己写，比如：小姨" maxlength="8" />
+        <button type="submit" class="add-item-button">确定</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 轻提示（相当于小程序的 wx.showToast） -->
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- 云端共享：Firebase（Google 提供）。没填配置时自动退回到本机模式 -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="nutrition.js"></script>
+  <script src="store.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
