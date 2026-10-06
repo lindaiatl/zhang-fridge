@@ -10,10 +10,10 @@
 
   // 每个称呼对应的小头像
   const OWNER_AVATARS = {
-    '宝贝': '👶', '爸爸': '👨', '妈妈': '👩', '爷爷': '👴', '奶奶': '👵', '外公': '👴', '外婆': '👵',
+    '宝贝': '👶', '爸爸': '👨', '妈妈': '👩', '老公': '👨', '老婆': '👩', '爷爷': '👴', '奶奶': '👵', '外公': '👴', '外婆': '👵',
     '哥哥': '🧑', '姐姐': '👩', '弟弟': '👦', '妹妹': '👧', '全家': '🏠',
   };
-  const WHO_CHOICES = ['爸爸', '妈妈', '爷爷', '奶奶', '外公', '外婆', '哥哥', '姐姐', '弟弟', '妹妹', '宝贝'];
+  const WHO_CHOICES = ['老公', '老婆', '爸爸', '妈妈', '爷爷', '奶奶', '外公', '外婆', '哥哥', '姐姐', '弟弟', '妹妹', '宝贝'];
 
   // 这台设备上的"我"是成员列表里的哪一位（还没选称呼时是 null）
   function me() {
@@ -164,7 +164,7 @@
             <span class="member-avatar">${escapeHtml(m.avatar)}</span>
             <span class="member-name">${escapeHtml(m.name)}</span>
             <span class="member-role">(${escapeHtml(m.role)})</span>
-            ${Store.isCloud && m.id === Store.deviceId ? '<span class="me-tag">我</span>' : ''}
+            ${Store.isCloud && m.id === Store.deviceId ? '<span class="me-tag">我</span><button class="rename-button">改称呼</button>' : ''}
           </div>`
           )
           .join('')
@@ -239,6 +239,22 @@
     Store.set('foodList', Store.get('foodList').concat(newFoods));
     Store.set('shoppingList', items.filter((item) => !item.bought));
     showToast(`${bought.map((item) => shortName(item.name)).join('、')}已入库！可前往"共享大冰箱"查看`, 2500);
+  });
+
+  // 改自己的称呼（比如选错了）
+  $('member-list').addEventListener('click', (e) => {
+    if (!e.target.closest('.rename-button')) return;
+    const mine = me();
+    if (!mine) return;
+    const name = (prompt('把你的称呼改成：', mine.name) || '').trim().slice(0, 8);
+    if (!name || name === mine.name) return;
+    Store.set(
+      'members',
+      Store.get('members').map((m) =>
+        m.id === Store.deviceId ? Object.assign({}, m, { name, avatar: OWNER_AVATARS[name] || '👤' }) : m
+      )
+    );
+    showToast(`已改成「${name}」`);
   });
 
   // 邀请新成员：手机上弹出系统分享，电脑上复制链接

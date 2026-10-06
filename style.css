@@ -531,3 +531,13 @@ main {
 .who-option:active {
   background: #e8f5e9;
 }
+
+.rename-button {
+  margin-left: auto;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #666;
+}
