@@ -1,12 +1,23 @@
 // 张家大冰箱网页版：页面逻辑
 // 冰箱（吃多少记多少、冷藏/冷冻）、一周食谱、家庭（购买清单、买到入库）、营养大盘
 (function () {
-  const { parseItem, nutritionFor, shelfDays, canFreeze, toGrams, lookup, formatQty, todayString } = window.Foods;
+  const { parseItem, nutritionFor, shelfDays, canFreeze, isSeasoning, toGrams, lookup, formatQty, todayString } = window.Foods;
   const $ = (id) => document.getElementById(id);
 
-  // 每人每天的参考摄入量（成年人粗略估算），全家参考量 = 每人参考量 × 家庭成员人数
+  // 每人每天的参考摄入量
+  // - 填了体重：热量 = 体重(公斤) × 30 千卡，蛋白质 = 体重(公斤) × 1 克（轻体力活动的成年人）
+  // - 没填体重：按成年人平均 2000 千卡、60 克
+  // 全家参考量 = 每个人的参考量加起来
   const KCAL_PER_PERSON = 2000;
   const PROTEIN_PER_PERSON = 60;
+  const KCAL_PER_KG = 30;
+  const PROTEIN_PER_KG = 1;
+
+  function personGoal(member) {
+    const w = member && member.weight;
+    if (w > 0) return { kcal: Math.round(w * KCAL_PER_KG), protein: Math.round(w * PROTEIN_PER_KG), byWeight: true };
+    return { kcal: KCAL_PER_PERSON, protein: PROTEIN_PER_PERSON, byWeight: false };
+  }
 
   // 每个称呼对应的小头像
   const OWNER_AVATARS = {
@@ -97,6 +108,8 @@
       f = Object.assign({}, f, { name: parsed.name, qty: parsed.qty, unit: parsed.unit });
     }
     if (!f.storage) f = Object.assign({}, f, { storage: '冷藏' });
+    // 入库时的数量：用来判断"吃过一部分"
+    if (f.initialQty == null) f = Object.assign({}, f, { initialQty: f.qty });
     return f;
   }
 
@@ -121,29 +134,31 @@
   }
 
   function renderFridge() {
-    // 快过期的排在前面
-    const foods = getFoods().sort((a, b) =>
+    // 快过期的排在前面；调料单独放在下面的调料区
+    const all = getFoods().sort((a, b) =>
       a.expireDate < b.expireDate ? -1 : a.expireDate > b.expireDate ? 1 : 0
     );
+    const foods = all.filter((f) => !isSeasoning(f.name));
+    const seasonings = all.filter((f) => isSeasoning(f.name));
 
-    if (foods.length === 0) {
-      $('food-list').innerHTML = '<p class="empty-text">冰箱空空的。去"我的家庭"把买到的食材入库吧。</p>';
-      return;
-    }
+    const editButtons = (food) => `
+      <button class="small-button" data-action="qty" data-id="${escapeHtml(food.id)}">✏️ 改数量</button>
+      <button class="small-button gray" data-action="delete" data-id="${escapeHtml(food.id)}">🗑 删除</button>`;
 
-    $('food-list').innerHTML = foods
-      .map((food) => {
-        const remain = remainingInfo(food.expireDate);
-        const badge = OWNER_AVATARS[food.owner] && food.owner !== '全家' ? OWNER_AVATARS[food.owner] : '';
-        const frozen = food.storage === '冷冻';
-        const freezeButton = canFreeze(food.name)
-          ? `<button class="small-button" data-action="storage" data-id="${escapeHtml(food.id)}">${frozen ? '🧊 改冷藏' : '❄️ 冻起来'}</button>`
-          : '';
-        return `
-          <div class="food-card">
-            ${badge ? `<span class="member-badge">${badge}</span>` : ''}
+    $('food-list').innerHTML = foods.length
+      ? foods
+          .map((food) => {
+            const remain = remainingInfo(food.expireDate);
+            const frozen = food.storage === '冷冻';
+            const partial = food.qty < food.initialQty;
+            const freezeButton =
+              frozen || canFreeze(food.name)
+                ? `<button class="small-button" data-action="storage" data-id="${escapeHtml(food.id)}">${frozen ? '🧊 改冷藏' : '❄️ 冻起来'}</button>`
+                : '';
+            return `
+          <div class="food-card ${frozen ? 'frozen-card' : ''} ${partial ? 'partial-card' : ''}">
             <div class="food-info">
-              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${formatQty(food.qty)}${escapeHtml(food.unit)}</span></div>
+              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${partial ? '还剩 ' : ''}${formatQty(food.qty)}${escapeHtml(food.unit)}</span>${partial ? ' <span class="partial-tag">已吃一部分</span>' : ''}</div>
               <div class="food-details">
                 <span class="storage-tag ${frozen ? 'frozen' : ''}">${frozen ? '❄️ 冷冻' : '🧊 冷藏'}</span>
                 <label class="remaining-days ${remain.cls}" title="点一下修改到期日">
@@ -152,12 +167,56 @@
                 </label>
                 <span class="added-by">[👤 ${escapeHtml(food.addedBy)}]</span>
               </div>
-              ${freezeButton}
+              <div class="card-actions">${freezeButton}${editButtons(food)}</div>
             </div>
-            <button class="finish-button" data-action="eat" data-id="${escapeHtml(food.id)}">吃了</button>
+            <button class="finish-button" data-action="eat" data-id="${escapeHtml(food.id)}">吃</button>
           </div>`;
-      })
+          })
+          .join('')
+      : '<p class="empty-text">冰箱空空的。去"我的家庭"把买到的食材入库吧。</p>';
+
+    $('seasoning-card').hidden = seasonings.length === 0;
+    $('seasoning-list').innerHTML = seasonings
+      .map(
+        (food) => `
+          <div class="seasoning-row">
+            <span class="seasoning-name">${escapeHtml(food.name)} <span class="food-qty">${formatQty(food.qty)}${escapeHtml(food.unit)}</span></span>
+            <button class="small-button" data-action="qty" data-id="${escapeHtml(food.id)}">✏️</button>
+            <button class="small-button gray" data-action="usedup" data-id="${escapeHtml(food.id)}">用完了</button>
+          </div>`
+      )
       .join('');
+  }
+
+  // 改数量和单位：比如西瓜改成"1个"、水改成"1箱"或"6瓶"
+  function editQuantity(id) {
+    const food = getFoods().find((f) => f.id === id);
+    if (!food) return;
+    const input = prompt(`${food.name} 现在有多少？（例如：1个、1箱、6瓶、0.5斤）`, `${formatQty(food.qty)}${food.unit}`);
+    if (input == null) return;
+    const text = input.trim();
+    if (!text) return;
+    // 只写数字时保留原来的单位
+    const parsed = /^\d+(\.\d+)?$/.test(text) ? { qty: parseFloat(text), unit: food.unit } : parseItem(`${food.name} ${text}`);
+    if (!(parsed.qty > 0) || parsed.name === `${food.name} ${text}`.trim()) {
+      showToast('没看懂，请写成"数字 + 单位"，如：1箱', 2500);
+      return;
+    }
+    saveFoods(
+      getFoods().map((f) =>
+        f.id === id ? Object.assign({}, f, { qty: parsed.qty, unit: parsed.unit, initialQty: parsed.qty }) : f
+      )
+    );
+    showToast(`已改成 ${formatQty(parsed.qty)}${parsed.unit}`);
+  }
+
+  // 删除：买错了、扔掉了、调料用完了（不计入营养）
+  function removeFood(id, ask) {
+    const food = getFoods().find((f) => f.id === id);
+    if (!food) return;
+    if (ask && !confirm(`从冰箱里删除「${food.name}」吗？\n（不会计入营养，适合买错了或扔掉的）`)) return;
+    saveFoods(getFoods().filter((f) => f.id !== id));
+    showToast(`已删除：${food.name}`);
   }
 
   // 冷藏 ⇄ 冷冻：从今天起按新的存放方式重新计算到期日
@@ -172,12 +231,18 @@
     showToast(`${food.name}已${food.storage === '冷冻' ? '放进冷冻室' : '改为冷藏'}，到期日已更新`, 2000);
   }
 
-  $('food-list').addEventListener('click', (e) => {
+  function onFridgeClick(e) {
     const button = e.target.closest('button[data-action]');
     if (!button) return;
-    if (button.dataset.action === 'eat') openEatModal(button.dataset.id);
-    if (button.dataset.action === 'storage') toggleStorage(button.dataset.id);
-  });
+    const { action, id } = button.dataset;
+    if (action === 'eat') openEatModal(id);
+    if (action === 'storage') toggleStorage(id);
+    if (action === 'qty') editQuantity(id);
+    if (action === 'delete') removeFood(id, true);
+    if (action === 'usedup') removeFood(id, false);
+  }
+  $('food-list').addEventListener('click', onFridgeClick);
+  $('seasoning-list').addEventListener('click', onFridgeClick);
 
   // 手动修改到期日
   $('food-list').addEventListener('change', (e) => {
@@ -227,7 +292,9 @@
       name: food.name,
       qty: eaten,
       unit: food.unit,
-      owner: food.owner || '全家',
+      // 记在"谁吃的"名下：哪台手机点的"吃"，就算谁的
+      owner: myName(),
+      eaterId: Store.deviceId,
       kcal: nutrition.kcal,
       protein: nutrition.protein,
       known: nutrition.known,
@@ -497,8 +564,8 @@
           <div class="member-item">
             <span class="member-avatar">${escapeHtml(m.avatar)}</span>
             <span class="member-name">${escapeHtml(m.name)}</span>
-            <span class="member-role">(${escapeHtml(m.role)})</span>
-            ${Store.isCloud && m.id === Store.deviceId ? '<span class="me-tag">我</span><button class="rename-button">改称呼</button>' : ''}
+            <span class="member-role">(${escapeHtml(m.role)})${m.weight ? ` ${formatQty(m.weight)}公斤` : ''}</span>
+            ${Store.isCloud && m.id === Store.deviceId ? '<span class="me-tag">我</span><span class="member-buttons"><button class="rename-button">改称呼</button><button class="weight-button">⚖️ 体重</button></span>' : ''}
           </div>`
           )
           .join('')
@@ -582,6 +649,26 @@
     showToast(`${bought.map((item) => shortName(item.name)).join('、')}已入库！可前往"共享大冰箱"查看`, 2500);
   });
 
+  // 填自己的体重：营养大盘按体重算每个人的参考热量和蛋白质
+  $('member-list').addEventListener('click', (e) => {
+    if (!e.target.closest('.weight-button')) return;
+    const mine = me();
+    if (!mine) return;
+    const input = prompt(
+      `你的体重是多少公斤？\n（用来算每天参考量：热量 = 体重 × ${KCAL_PER_KG} 千卡，蛋白质 = 体重 × ${PROTEIN_PER_KG} 克。斤请除以 2）`,
+      mine.weight || ''
+    );
+    if (input == null) return;
+    const weight = parseFloat(input);
+    if (!(weight >= 20 && weight <= 250)) {
+      showToast('请填 20～250 之间的公斤数', 2500);
+      return;
+    }
+    Store.set('members', Store.get('members').map((m) => (m.id === Store.deviceId ? Object.assign({}, m, { weight }) : m)));
+    const goal = personGoal({ weight });
+    showToast(`已记下 ${formatQty(weight)} 公斤\n每天参考：${goal.kcal} 千卡、蛋白质 ${goal.protein} 克`, 3000);
+  });
+
   // 改自己的称呼（比如选错了）
   $('member-list').addEventListener('click', (e) => {
     if (!e.target.closest('.rename-button')) return;
@@ -647,24 +734,32 @@
 
   function renderNutrition() {
     const today = todayString();
-    const familySize = Store.get('members').length || 1;
-    const kcalGoal = KCAL_PER_PERSON * familySize;
-    const proteinGoal = PROTEIN_PER_PERSON * familySize;
+    const members = Store.get('members');
     const todayRecords = Store.get('eatenLog').filter((r) => r.date === today);
 
+    // 每个人一行：先列家庭成员（按体重算各自的参考量），再列旧记录里的其他名字
+    const rows = {};
+    members.forEach((m) => {
+      rows[m.id] = { name: m.name, avatar: m.avatar || OWNER_AVATARS[m.name] || '👤', goal: personGoal(m), weight: m.weight, kcal: 0, protein: 0 };
+    });
     let totalKcal = 0;
     let totalProtein = 0;
-    const byOwner = {};
     todayRecords.forEach((r) => {
       totalKcal += r.kcal;
       totalProtein += r.protein;
-      if (!byOwner[r.owner]) {
-        byOwner[r.owner] = { owner: r.owner, avatar: OWNER_AVATARS[r.owner] || '👤', kcal: 0, protein: 0 };
+      let key = r.eaterId && rows[r.eaterId] ? r.eaterId : null;
+      if (!key) {
+        const byName = members.find((m) => m.name === r.owner);
+        key = byName ? byName.id : `name:${r.owner}`;
       }
-      byOwner[r.owner].kcal += r.kcal;
-      byOwner[r.owner].protein += r.protein;
+      if (!rows[key]) rows[key] = { name: r.owner, avatar: OWNER_AVATARS[r.owner] || '👤', goal: null, kcal: 0, protein: 0 };
+      rows[key].kcal += r.kcal;
+      rows[key].protein += r.protein;
     });
     totalProtein = Math.round(totalProtein * 10) / 10;
+
+    const kcalGoal = members.length ? members.reduce((sum, m) => sum + personGoal(m).kcal, 0) : KCAL_PER_PERSON;
+    const proteinGoal = members.length ? members.reduce((sum, m) => sum + personGoal(m).protein, 0) : PROTEIN_PER_PERSON;
 
     // 进度条最多显示到 100%
     const kcalPercent = Math.min(100, Math.round((totalKcal / kcalGoal) * 100));
@@ -678,21 +773,30 @@
     $('kcal-goal').textContent = `全家参考量 ${kcalGoal} 千卡 · 已达 ${kcalPercent}%`;
     $('protein-goal').textContent = `全家参考量 ${proteinGoal} 克 · 已达 ${proteinPercent}%`;
 
-    const stats = Object.keys(byOwner).map((key) => byOwner[key]);
-    $('member-stats-card').hidden = stats.length === 0;
-    $('member-stats').innerHTML = stats
+    const list = Object.keys(rows)
+      .map((k) => rows[k])
+      .filter((r) => r.goal || r.kcal || r.protein);
+    $('member-stats-card').hidden = list.length === 0;
+    $('member-stats').innerHTML = list
       .map(
         (m) => `
-          <div class="row">
-            <span class="row-name">${m.avatar} ${escapeHtml(m.owner)}</span>
-            <span class="row-numbers">${m.kcal} 千卡 · ${Math.round(m.protein * 10) / 10} 克蛋白质</span>
+          <div class="member-stat">
+            <div class="row">
+              <span class="row-name">${escapeHtml(m.avatar)} ${escapeHtml(m.name)}${m.weight ? ` <span class="food-qty">${formatQty(m.weight)}公斤</span>` : ''}</span>
+              <span class="row-numbers">${m.kcal} 千卡 · ${Math.round(m.protein * 10) / 10} 克</span>
+            </div>
+            ${
+              m.goal
+                ? `<div class="goal-line">参考量 ${m.goal.kcal} 千卡 · ${m.goal.protein} 克${m.goal.byWeight ? '（按体重算）' : '（没填体重，按平均值）'}</div>`
+                : ''
+            }
           </div>`
       )
       .join('');
 
     if (todayRecords.length === 0) {
       $('eaten-list').innerHTML =
-        '<p class="empty-text">今天还没有记录。去"共享大冰箱"点"吃了"，这里就会自动累加。</p>';
+        '<p class="empty-text">今天还没有记录。去"共享大冰箱"点绿色的"吃"，这里就会自动累加。</p>';
       return;
     }
     // 最新吃的排在最上面

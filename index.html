@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610061900" />
+  <link rel="stylesheet" href="style.css?v=202610071616" />
 </head>
 <body>
   <header class="top-bar">
@@ -29,8 +29,13 @@
 
       <div class="card">
         <h2 class="card-title">冰箱里的食材</h2>
-        <p class="hint-text">快过期的排在最前面。点 ✏️ 可以改到期日。</p>
+        <p class="hint-text">快过期的排在最前面。点 ✏️ 可以改到期日。浅蓝底是冷冻，浅橙底是已吃一部分。</p>
         <div id="food-list"></div>
+      </div>
+
+      <div id="seasoning-card" class="card" hidden>
+        <h2 class="card-title">🧂 调料</h2>
+        <div id="seasoning-list"></div>
       </div>
     </section>
 
@@ -106,6 +111,14 @@
         <div id="eaten-list"></div>
       </div>
 
+      <div class="card formula-card">
+        <h2 class="card-title left">📐 参考量怎么算</h2>
+        <p>每个人在「我的家庭」点自己名字旁的「⚖️ 体重」填上公斤数，就按体重算：</p>
+        <p class="formula">每天热量 ≈ 体重(公斤) × 30 千卡<br />每天蛋白质 ≈ 体重(公斤) × 1 克</p>
+        <p>例如 60 公斤：约 1800 千卡、60 克蛋白质。没填体重的按成年人平均 2000 千卡、60 克算。全家参考量是每个人加起来。</p>
+        <p class="muted-small">这是轻体力活动成年人的大致估算（参考《中国居民膳食指南》）；孩子、孕期、运动量大或有特殊健康情况的，请以医生或营养师建议为准。</p>
+      </div>
+
       <p class="note-text">营养数值是按常见食材估算的参考值，不是精确数据。</p>
     </section>
   </main>
@@ -113,8 +126,8 @@
   <!-- 底部标签栏 -->
   <nav class="tab-bar">
     <button class="tab active" data-page="fridge">🏠 共享大冰箱</button>
-    <button class="tab" data-page="menu">📅 本周食谱</button>
     <button class="tab" data-page="family">👥 我的家庭</button>
+    <button class="tab" data-page="menu">📅 本周食谱</button>
     <button class="tab" data-page="nutrition">📊 营养大盘</button>
   </nav>
 
@@ -151,13 +164,13 @@
       <p>「我的家庭」页的购买清单可以自己添加（写上数量，如：猪肉 1斤）。买到后勾选，再点「🛒 买到」，食材就进冰箱，并按食材自动算好能放几天。</p>
 
       <h3>🧊 5. 冰箱</h3>
-      <p>快过期的排在最前面，红色表示 2 天内到期。点「剩 X 天 ✏️」可以改到期日；肉类可以点「❄️ 冻起来」，能放更久。</p>
+      <p>快过期的排在最前面，红色表示 2 天内到期。点「剩 X 天 ✏️」可以改到期日；肉类可以点「❄️ 冻起来」，能放更久（冷冻的是浅蓝底）。盐、蚝油、酱油等放在最下面的「🧂 调料」区，用完点「用完了」。</p>
 
       <h3>🍽️ 6. 记录吃了多少</h3>
-      <p>在冰箱里点食材右边的「吃了」，选全部、一半或自己填数量。没吃完的会留在冰箱里，营养只按吃掉的量算。</p>
+      <p>在冰箱里点食材右边绿色的「吃」，选全部、一半或自己填数量。没吃完的会留在冰箱里（卡片变成浅橙色），营养只按吃掉的量算。买错或扔掉的点「🗑 删除」，数量不对点「✏️ 改数量」（如 1箱、6瓶）。</p>
 
       <h3>📊 7. 营养大盘</h3>
-      <p>自动加总全家今天吃的热量和蛋白质，按人分开显示。数值是按常见食材估算的参考值。</p>
+      <p>谁在自己手机上点「吃」，就记在谁名下。每个人在「我的家庭」点「⚖️ 体重」填上体重，参考量就按体重算：热量 ≈ 体重(公斤) × 30 千卡，蛋白质 ≈ 体重(公斤) × 1 克。数值是估算的参考值。</p>
 
       <p class="note-text">所有功能免费，不需要注册账号。</p>
       <button id="help-close" class="big-button green">知道了</button>
@@ -233,11 +246,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610061900';</script>
-  <script src="firebase-config.js?v=202610061900"></script>
-  <script src="foods.js?v=202610061900"></script>
-  <script src="recipes.js?v=202610061900"></script>
-  <script src="store.js?v=202610061900"></script>
-  <script src="app.js?v=202610061900"></script>
+  <script>window.APP_VERSION = '?v=202610071616';</script>
+  <script src="firebase-config.js?v=202610071616"></script>
+  <script src="foods.js?v=202610071616"></script>
+  <script src="recipes.js?v=202610071616"></script>
+  <script src="store.js?v=202610071616"></script>
+  <script src="app.js?v=202610071616"></script>
 </body>
 </html>

@@ -60,28 +60,44 @@
     { keywords: ['茄子'], unit: '根', grams: 250, kcal: 23, protein: 1.1, fridgeDays: 5, freezerDays: 0 },
     { keywords: ['大蒜', '蒜'], unit: '头', grams: 50, kcal: 128, protein: 4.5, fridgeDays: 30, freezerDays: 0 },
     { keywords: ['葱', '姜', '香菜'], unit: '把', grams: 100, kcal: 30, protein: 1.6, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜', '油麦菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
 
     // 水果
+    { keywords: ['西瓜'], unit: '个', grams: 4000, kcal: 31, protein: 0.5, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['哈密瓜', '甜瓜'], unit: '个', grams: 1500, kcal: 34, protein: 0.5, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['桃'], unit: '个', grams: 200, kcal: 42, protein: 0.6, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['梨'], unit: '个', grams: 250, kcal: 50, protein: 0.4, fridgeDays: 14, freezerDays: 0 },
+    { keywords: ['芒果'], unit: '个', grams: 300, kcal: 35, protein: 0.6, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['猕猴桃', '奇异果'], unit: '个', grams: 100, kcal: 61, protein: 0.8, fridgeDays: 14, freezerDays: 0 },
     { keywords: ['苹果'], unit: '个', grams: 200, kcal: 53, protein: 0.4, fridgeDays: 30, freezerDays: 0 },
     { keywords: ['香蕉'], unit: '根', grams: 120, kcal: 93, protein: 1.4, fridgeDays: 5, freezerDays: 0 },
     { keywords: ['橙子', '橘子', '柑'], unit: '个', grams: 200, kcal: 48, protein: 0.8, fridgeDays: 14, freezerDays: 0 },
     { keywords: ['葡萄'], unit: '斤', grams: 500, kcal: 44, protein: 0.5, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['草莓', '蓝莓'], unit: '盒', grams: 250, kcal: 32, protein: 1, fridgeDays: 3, freezerDays: 90 },
 
-    // 调味品：一般不会整瓶吃掉，营养按 0 算
-    { keywords: ['生抽', '老抽', '酱油', '醋', '盐', '糖', '油', '酱', '料酒'], unit: '瓶', grams: 500, kcal: 0, protein: 0, fridgeDays: 180, freezerDays: 0 },
+    // 饮料（"=水" 表示名字正好是"水"才算，免得"水果""水饺"被当成水）
+    { keywords: ['矿泉水', '纯净水', '苏打水', '饮用水', '=水'], unit: '瓶', grams: 550, kcal: 0, protein: 0, fridgeDays: 365, freezerDays: 0 },
+    { keywords: ['果汁'], unit: '盒', grams: 1000, kcal: 45, protein: 0.5, fridgeDays: 7, freezerDays: 0 },
+    { keywords: ['啤酒'], unit: '瓶', grams: 500, kcal: 32, protein: 0.4, fridgeDays: 180, freezerDays: 0 },
+    { keywords: ['汽水', '饮料'], unit: '瓶', grams: 500, kcal: 40, protein: 0, fridgeDays: 180, freezerDays: 0 },
+
+    // 调料：放在冰箱的"调料区"，不倒计时；一般不会整瓶吃掉，营养按 0 算
+    { keywords: ['生抽', '老抽', '酱油', '蚝油', '醋', '盐', '糖', '料酒', '味精', '鸡精', '胡椒', '花椒', '八角', '辣椒酱', '豆瓣酱', '番茄酱', '芝麻酱', '沙拉酱', '油', '酱'], unit: '瓶', grams: 500, kcal: 0, protein: 0, fridgeDays: 365, freezerDays: 0, seasoning: true },
   ];
 
   // 表里没有的食材：保存天数给个保守的默认值，营养标为"未收录"
-  const UNKNOWN = { unit: '份', grams: 0, kcal: 0, protein: 0, fridgeDays: 5, freezerDays: 30, known: false };
+  // 不确定能不能冻，所以默认不显示「冻起来」
+  const UNKNOWN = { unit: '份', grams: 0, kcal: 0, protein: 0, fridgeDays: 5, freezerDays: 0, known: false };
 
   // 按重量计算的单位：1 个单位多少克
   const WEIGHT_UNITS = { 斤: 500, 两: 50, 公斤: 1000, 千克: 1000, kg: 1000, 克: 1, g: 1 };
-  const UNIT_PATTERN = '斤|两|公斤|千克|kg|克|g|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串|头';
+  const UNIT_PATTERN = '斤|两|公斤|千克|kg|克|g|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串|头|箱|提|桶|升|L|毫升|ml';
 
   function lookup(name) {
-    const food = FOODS.find((row) => row.keywords.some((word) => name.indexOf(word) !== -1));
+    const clean = String(name || '').replace(/[^\u4e00-\u9fa5A-Za-z]/g, '');
+    const food = FOODS.find((row) =>
+      row.keywords.some((word) => (word[0] === '=' ? clean === word.slice(1) : name.indexOf(word) !== -1))
+    );
     return food ? Object.assign({ known: true }, food) : Object.assign({}, UNKNOWN);
   }
 
@@ -129,6 +145,10 @@
     return lookup(name).freezerDays > 0;
   }
 
+  function isSeasoning(name) {
+    return !!lookup(name).seasoning;
+  }
+
   // 数字显示得干净一点：1.50 → 1.5，2.0 → 2
   function formatQty(qty) {
     return String(Math.round(qty * 100) / 100);
@@ -147,6 +167,7 @@
     nutritionFor,
     shelfDays,
     canFreeze,
+    isSeasoning,
     toGrams,
     formatQty,
     todayString,

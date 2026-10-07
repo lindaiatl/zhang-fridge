@@ -813,3 +813,134 @@ label.remaining-days {
 .help-content .note-text {
   margin: 16px 0 4px;
 }
+
+/* ---------- 冷冻 / 吃过一部分 的卡片底色、调料区、营养算法 ---------- */
+.food-card.frozen-card {
+  background: #eaf4fd;
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 12px;
+  border-bottom-color: #fff;
+}
+
+.food-card.partial-card {
+  background: #fff4e5;
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 12px;
+  border-bottom-color: #fff;
+}
+
+.partial-tag {
+  font-size: 12px;
+  font-weight: normal;
+  color: #e65100;
+  background: #ffe0b2;
+  border-radius: 8px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* "吃"按钮：绿色，不再用红色 */
+.finish-button {
+  background-color: var(--green);
+  min-width: 52px;
+  font-size: 16px;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.card-actions .small-button {
+  margin-top: 0;
+}
+
+.small-button.gray {
+  border-color: #e0e0e0;
+  background: #fafafa;
+  color: #888;
+}
+
+.seasoning-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.seasoning-row:last-child {
+  border-bottom: none;
+}
+
+.seasoning-row .small-button {
+  margin-top: 0;
+}
+
+.seasoning-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.member-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.member-buttons .rename-button,
+.weight-button {
+  margin-left: 0;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #666;
+}
+
+.member-stat {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 6px;
+}
+
+.member-stat:last-child {
+  border-bottom: none;
+}
+
+.member-stat .row {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.goal-line {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.formula-card p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #444;
+  margin: 0 0 8px;
+}
+
+.formula-card .formula {
+  background: #f1f8e9;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #2e7d32;
+}
+
+.muted-small {
+  font-size: 12px !important;
+  color: var(--muted) !important;
+}

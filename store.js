@@ -12,17 +12,16 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
-  // 第一次打开时的默认数据，和小程序保持一致
+  // 第一次打开时的默认数据：本机模式放两样示例；云端的新家庭从空冰箱开始
   function defaultData(cloud) {
     return {
-      foodList: [
-        { id: 'milk', name: '🥛 特仑苏牛奶 (3盒)', expireDate: daysFromToday(1), addedBy: '妈妈放入', owner: '宝贝' },
-        { id: 'beef', name: '🥩 澳洲和牛 (1块)', expireDate: daysFromToday(5), addedBy: '爸爸放入', owner: '爸爸' },
-      ],
-      shoppingList: [
-        { id: 'soy_sauce', name: '🧂 厨邦生抽 (1瓶)', requester: '爸爸需要', bought: false },
-        { id: 'eggs', name: '🥚 农家土鸡蛋 (10个)', requester: '妈妈需要', bought: false },
-      ],
+      foodList: cloud
+        ? []
+        : [
+            { id: 'milk', name: '🥛 特仑苏牛奶 (3盒)', expireDate: daysFromToday(1), addedBy: '示例' },
+            { id: 'beef', name: '🥩 澳洲和牛 (1块)', expireDate: daysFromToday(5), addedBy: '示例' },
+          ],
+      shoppingList: [],
       eatenLog: [],
       // 一周食谱：{ '2026-10-06': { 早餐: [菜, ...], 午餐: [菜, ...] }, ... }
       mealPlan: {},
