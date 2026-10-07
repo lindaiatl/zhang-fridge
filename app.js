@@ -614,6 +614,12 @@
       showToast('请输入食材名称');
       return;
     }
+    // 只写了数量（比如"4个""1"）没写食材名
+    const parsed = parseItem(name);
+    if (/^[\d.\s]*$/.test(parsed.name) || parsed.name === name.replace(/\s/g, '') && /^\d/.test(name)) {
+      showToast('请写上食材名和数量，比如：苹果 4个', 2500);
+      return;
+    }
     Store.set(
       'shoppingList',
       Store.get('shoppingList').concat({ id: `item-${Date.now()}`, name, requester: `${myName()}需要`, bought: false })
@@ -655,13 +661,29 @@
     const mine = me();
     if (!mine) return;
     const input = prompt(
-      `你的体重是多少公斤？\n（用来算每天参考量：热量 = 体重 × ${KCAL_PER_KG} 千卡，蛋白质 = 体重 × ${PROTEIN_PER_KG} 克。斤请除以 2）`,
-      mine.weight || ''
+      `填你的体重，可以写"公斤"或"斤"，比如：55公斤 或 110斤\n（用来算每天参考量：热量 = 体重(公斤) × ${KCAL_PER_KG} 千卡，蛋白质 = 体重(公斤) × ${PROTEIN_PER_KG} 克）`,
+      mine.weight ? `${formatQty(mine.weight)}公斤` : ''
     );
     if (input == null) return;
-    const weight = parseFloat(input);
+    const text = input.trim().toLowerCase();
+    const num = parseFloat(text);
+    if (!(num > 0)) {
+      showToast('请写数字，比如：55公斤 或 110斤', 2500);
+      return;
+    }
+    let weight;
+    if (/斤/.test(text) && !/公斤/.test(text)) weight = num / 2;
+    else if (/磅|lb/.test(text)) weight = Math.round(num * 0.4536 * 10) / 10;
+    else if (/公斤|kg|千克/.test(text)) weight = num;
+    else {
+      // 只写了数字：大于 90 的多半是"斤"，问一下
+      weight = num;
+      if (num > 90 && confirm(`你写的是 ${num} 斤吗？\n点「确定」按 ${num} 斤（${formatQty(num / 2)} 公斤）算；点「取消」按 ${num} 公斤算。`)) {
+        weight = num / 2;
+      }
+    }
     if (!(weight >= 20 && weight <= 250)) {
-      showToast('请填 20～250 之间的公斤数', 2500);
+      showToast('体重好像不对，请再核对一下', 2500);
       return;
     }
     Store.set('members', Store.get('members').map((m) => (m.id === Store.deviceId ? Object.assign({}, m, { weight }) : m)));
@@ -806,7 +828,8 @@
       .map(
         (r) => `
           <div class="row">
-            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${formatQty(r.qty)}${escapeHtml(r.unit)}</span>` : ''}</span>
+            <button class="record-x" data-record="${escapeHtml(r.id)}" aria-label="删除这条记录">✕</button>
+            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${formatQty(r.qty)}${escapeHtml(r.unit)}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
             ${
               r.known
                 ? `<span class="row-numbers">${r.kcal} 千卡 · ${r.protein} 克</span>`
@@ -816,6 +839,17 @@
       )
       .join('');
   }
+
+  // 删除记错的"吃了"记录（不会放回冰箱）
+  $('eaten-list').addEventListener('click', (e) => {
+    const button = e.target.closest('.record-x');
+    if (!button) return;
+    const record = Store.get('eatenLog').find((r) => r.id === button.dataset.record);
+    if (!record) return;
+    if (!confirm(`删除这条记录吗？\n${record.name}（${record.kcal} 千卡）\n只是从营养大盘里去掉，不会放回冰箱。`)) return;
+    Store.set('eatenLog', Store.get('eatenLog').filter((r) => r.id !== record.id));
+    showToast('已删除这条记录');
+  });
 
   // ---------- 👋 第一次进入家庭时选称呼 ----------
 

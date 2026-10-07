@@ -944,3 +944,17 @@ label.remaining-days {
   font-size: 12px !important;
   color: var(--muted) !important;
 }
+
+.record-x {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #ccc;
+  font-size: 14px;
+  padding: 0 4px 0 0;
+}
+
+.eater {
+  font-size: 12px;
+  color: var(--muted);
+}
