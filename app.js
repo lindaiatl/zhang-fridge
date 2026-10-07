@@ -66,12 +66,18 @@
   let toastTimer = null;
   function showToast(text, duration) {
     const toast = $('toast');
+    // 点一下提示就关掉
+    toast.onclick = () => {
+      toast.hidden = true;
+    };
     toast.textContent = text;
     toast.hidden = false;
     clearTimeout(toastTimer);
+    // 至少显示 3 秒，字多的再按字数加长一点，给人反应的时间
+    const time = Math.max(duration || 0, 3000, String(text).length * 150);
     toastTimer = setTimeout(() => {
       toast.hidden = true;
-    }, duration || 1500);
+    }, time);
   }
 
   // ---------- 底部标签切换 ----------
