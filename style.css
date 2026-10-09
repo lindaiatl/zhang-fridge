@@ -1026,3 +1026,7 @@ label.remaining-days {
 .member-buttons button {
   white-space: nowrap;
 }
+
+.week-switch + .hint-text {
+  margin-top: 10px;
+}

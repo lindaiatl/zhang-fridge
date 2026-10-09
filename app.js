@@ -198,7 +198,8 @@
   function editQuantity(id) {
     const food = getFoods().find((f) => f.id === id);
     if (!food) return;
-    const input = prompt(`${food.name} 现在有多少？（例如：1个、1箱、6瓶、0.5斤）`, `${formatQty(food.qty)}${food.unit}`);
+    const examples = region() === 'US' ? '1个、1箱、1加仑、半加仑、1磅' : '1个、1箱、6瓶、0.5斤';
+    const input = prompt(`${food.name} 现在有多少？（例如：${examples}）`, `${formatQty(food.qty)}${food.unit}`);
     if (input == null) return;
     const text = input.trim();
     if (!text) return;
@@ -533,6 +534,18 @@
   }
 
   const NEVER_BUY = ['米饭'];
+
+  // 常用单位：中国（盒、斤）或美国（加仑、磅）
+  function region() {
+    return (Store.get('settings') || {}).region === 'US' ? 'US' : 'CN';
+  }
+  const LIQUID_KEYS = ['牛奶', '豆浆', '果汁'];
+  function regionUnit(name, unit) {
+    if (region() !== 'US') return unit;
+    if (LIQUID_KEYS.indexOf(foodKey(name)) !== -1) return '加仑';
+    if (['斤', '两', '克', '公斤', '千克', 'g', 'kg'].indexOf(unit) !== -1) return '磅';
+    return unit;
+  }
   function pantryList() {
     return (Store.get('settings') || {}).pantry || [];
   }
@@ -585,10 +598,12 @@
       const n = need[key];
       const shortage = n.amount - haveAmount(key, n);
       if (shortage <= 0.0001) return;
-      // 换回原来的单位：按个数的向上取整，按重量的保留一位小数
-      let qty = n.byWeight ? shortage / toGrams(n.name, 1, n.unit) : shortage;
-      qty = WEIGHT_UNIT_SET[n.unit] ? Math.ceil(qty * 10 - 0.0001) / 10 : Math.ceil(qty - 0.0001);
-      const text = `${n.name} ${formatQty(qty)}${n.unit}`;
+      // 按家里的常用单位换算（美国：牛奶用加仑、肉菜用磅），按个数的向上取整
+      const unit = n.byWeight ? regionUnit(n.name, n.unit) : n.unit;
+      let qty = n.byWeight ? shortage / toGrams(n.name, 1, unit) : shortage;
+      if (unit === '加仑' || unit === '磅') qty = Math.ceil(qty * 2 - 0.0001) / 2; // 美国单位按半个取整
+      else qty = WEIGHT_UNIT_SET[unit] ? Math.ceil(qty * 10 - 0.0001) / 10 : Math.ceil(qty - 0.0001);
+      const text = `${n.name} ${formatQty(qty)}${unit}`;
       // 原来就有一模一样的条目就沿用它（保留原来的位置和编号）
       const same = before.find((item) => isAuto(item) && item.name === text);
       newItems.push(same || { id: `menu-${Date.now()}-${i}`, name: text, requester: '食谱需要', bought: false });
@@ -642,6 +657,21 @@
       )
       .join('');
   }
+
+  function renderRegion() {
+    document.querySelectorAll('.region-button').forEach((b) => b.classList.toggle('active', b.dataset.region === region()));
+    $('new-item-input').placeholder = region() === 'US' ? '食材和数量，如：牛奶 1加仑、猪肉 1磅' : '食材和数量，如：猪肉 1斤';
+  }
+
+  document.querySelectorAll('.region-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.dataset.region === region()) return;
+      Store.set('settings', Object.assign({}, Store.get('settings'), { region: button.dataset.region }));
+      // 食谱自动加的条目按新单位重新算一遍
+      syncShoppingWithMenu();
+      showToast(button.dataset.region === 'US' ? '已改成美国常用单位：牛奶用加仑、肉菜用磅' : '已改成中国常用单位：盒、斤');
+    });
+  });
 
   function renderPantry() {
     const pantry = pantryList();
@@ -1111,6 +1141,7 @@
   function renderAll() {
     renderFamilyName();
     renderPantry();
+    renderRegion();
     renderFridge();
     renderMenu();
     renderFamily();
