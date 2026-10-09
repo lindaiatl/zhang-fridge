@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610082118" />
+  <link rel="stylesheet" href="style.css?v=202610082120" />
 </head>
 <body>
   <header class="top-bar">
@@ -118,8 +118,9 @@
       <div class="card formula-card">
         <h2 class="card-title left">📐 参考量怎么算</h2>
         <p>每个人在「我的家庭」点自己名字旁的「⚖️ 体重」填上公斤数，就按体重算：</p>
-        <p class="formula">每天热量 ≈ 体重(公斤) × 30 千卡<br />每天蛋白质 ≈ 体重(公斤) × 1 克</p>
+        <p class="formula">每天热量 ≈ 体重(公斤) × 30 千卡<br />每天蛋白质 ≈ 体重(公斤) × 1 克（普通成年人）</p>
         <p>例如 60 公斤：约 1800 千卡、60 克蛋白质。没填体重的按成年人平均 2000 千卡、60 克算。全家参考量是每个人加起来。</p>
+        <p><b>蛋白质两个常见标准</b>：普通成年人约 <b>1.0 克/公斤</b>（App 按这个算）；经常运动、健身增肌的人常用 <b>1.6 克/公斤</b>（60 公斤约 96 克），「每个人」里会一起列出来作对照。</p>
         <p class="muted-small">这是轻体力活动成年人的大致估算（参考《中国居民膳食指南》）；孩子、孕期、运动量大或有特殊健康情况的，请以医生或营养师建议为准。</p>
       </div>
 
@@ -250,11 +251,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610082118';</script>
-  <script src="firebase-config.js?v=202610082118"></script>
-  <script src="foods.js?v=202610082118"></script>
-  <script src="recipes.js?v=202610082118"></script>
-  <script src="store.js?v=202610082118"></script>
-  <script src="app.js?v=202610082118"></script>
+  <script>window.APP_VERSION = '?v=202610082120';</script>
+  <script src="firebase-config.js?v=202610082120"></script>
+  <script src="foods.js?v=202610082120"></script>
+  <script src="recipes.js?v=202610082120"></script>
+  <script src="store.js?v=202610082120"></script>
+  <script src="app.js?v=202610082120"></script>
 </body>
 </html>

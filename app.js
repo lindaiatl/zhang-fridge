@@ -12,6 +12,8 @@
   const PROTEIN_PER_PERSON = 60;
   const KCAL_PER_KG = 30;
   const PROTEIN_PER_KG = 1;
+  // 经常运动、增肌的人常用的蛋白质标准，只作对照显示
+  const PROTEIN_PER_KG_ACTIVE = 1.6;
 
   function personGoal(member) {
     const w = member && member.weight;
@@ -780,7 +782,10 @@
     }
     Store.set('members', Store.get('members').map((m) => (m.id === Store.deviceId ? Object.assign({}, m, { weight }) : m)));
     const goal = personGoal({ weight });
-    showToast(`已记下 ${formatQty(weight)} 公斤\n每天参考：${goal.kcal} 千卡、蛋白质 ${goal.protein} 克`, 3000);
+    showToast(
+      `已记下 ${formatQty(weight)} 公斤\n每天参考：${goal.kcal} 千卡、蛋白质 ${goal.protein} 克\n（经常运动/增肌：蛋白质约 ${Math.round(weight * PROTEIN_PER_KG_ACTIVE)} 克）`,
+      4000
+    );
   });
 
   // 改自己的称呼（比如选错了）
@@ -901,7 +906,7 @@
             </div>
             ${
               m.goal
-                ? `<div class="goal-line">参考量 ${m.goal.kcal} 千卡 · ${m.goal.protein} 克${m.goal.byWeight ? '（按体重算）' : '（没填体重，按平均值）'}</div>`
+                ? `<div class="goal-line">参考量 ${m.goal.kcal} 千卡 · 蛋白质 ${m.goal.protein} 克${m.goal.byWeight ? `（按体重算；经常运动/增肌按 ${PROTEIN_PER_KG_ACTIVE} 克/公斤约 ${Math.round(m.weight * PROTEIN_PER_KG_ACTIVE)} 克）` : '（没填体重，按平均值）'}</div>`
                 : ''
             }
           </div>`
