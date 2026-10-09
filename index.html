@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610071629" />
+  <link rel="stylesheet" href="style.css?v=202610082118" />
 </head>
 <body>
   <header class="top-bar">
@@ -76,6 +76,10 @@
           <button type="submit" class="add-item-button">➕ 添加</button>
         </form>
         <div id="shopping-list"></div>
+        <div id="pantry-card" class="pantry" hidden>
+          <p class="hint-text left">🏠 家里常备（食谱不会自动加，点 ✕ 撤销）：</p>
+          <div id="pantry-list" class="meal-dishes"></div>
+        </div>
       </div>
 
       <button id="invite-button" class="big-button orange">✉️ 邀请新成员加入家庭</button>
@@ -246,11 +250,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610071629';</script>
-  <script src="firebase-config.js?v=202610071629"></script>
-  <script src="foods.js?v=202610071629"></script>
-  <script src="recipes.js?v=202610071629"></script>
-  <script src="store.js?v=202610071629"></script>
-  <script src="app.js?v=202610071629"></script>
+  <script>window.APP_VERSION = '?v=202610082118';</script>
+  <script src="firebase-config.js?v=202610082118"></script>
+  <script src="foods.js?v=202610082118"></script>
+  <script src="recipes.js?v=202610082118"></script>
+  <script src="store.js?v=202610082118"></script>
+  <script src="app.js?v=202610082118"></script>
 </body>
 </html>

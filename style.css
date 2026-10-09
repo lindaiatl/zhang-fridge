@@ -979,3 +979,50 @@ label.remaining-days {
 .row:has(.record-x) .row-unknown {
   margin-left: auto;
 }
+
+/* 购买清单每行右边的删除键 */
+.shopping-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.shopping-row:last-child {
+  border-bottom: none;
+}
+
+.shopping-row .shopping-item {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.shopping-row .record-x {
+  margin: 0 0 0 8px;
+}
+
+.pantry {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #ddd;
+}
+
+.pantry[hidden] {
+  display: none;
+}
+
+.hint-text.left {
+  text-align: left;
+  margin: 0 0 8px;
+}
+
+/* 成员一行放不下时，按钮换到下一行，名字不被挤成竖排 */
+.member-item {
+  flex-wrap: wrap;
+}
+
+.member-name,
+.member-role,
+.member-buttons button {
+  white-space: nowrap;
+}

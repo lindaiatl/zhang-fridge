@@ -16,7 +16,7 @@
     { keywords: ['牛肉', '牛排', '牛腩'], unit: '斤', grams: 500, kcal: 125, protein: 20, fridgeDays: 3, freezerDays: 120 },
     { keywords: ['羊肉'], unit: '斤', grams: 500, kcal: 203, protein: 19, fridgeDays: 3, freezerDays: 120 },
     { keywords: ['排骨'], unit: '斤', grams: 500, kcal: 278, protein: 16.7, fridgeDays: 3, freezerDays: 90 },
-    { keywords: ['瘦肉', '里脊'], unit: '斤', grams: 500, kcal: 143, protein: 20.3, fridgeDays: 3, freezerDays: 90 },
+    { keywords: ['瘦肉', '瘦猪肉', '里脊'], unit: '斤', grams: 500, kcal: 143, protein: 20.3, fridgeDays: 3, freezerDays: 90 },
     { keywords: ['五花肉', '猪肉', '肉馅', '肉末'], unit: '斤', grams: 500, kcal: 395, protein: 13.2, fridgeDays: 3, freezerDays: 90 },
     { keywords: ['培根', '火腿', '香肠'], unit: '包', grams: 200, kcal: 330, protein: 15, fridgeDays: 7, freezerDays: 60 },
     { keywords: ['鸡胸'], unit: '块', grams: 200, kcal: 133, protein: 24.6, fridgeDays: 2, freezerDays: 90 },
@@ -60,7 +60,7 @@
     { keywords: ['茄子'], unit: '根', grams: 250, kcal: 23, protein: 1.1, fridgeDays: 5, freezerDays: 0 },
     { keywords: ['大蒜', '蒜'], unit: '头', grams: 50, kcal: 128, protein: 4.5, fridgeDays: 30, freezerDays: 0 },
     { keywords: ['葱', '姜', '香菜'], unit: '把', grams: 100, kcal: 30, protein: 1.6, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜', '油麦菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜', '油麦菜', '韭菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
 
     // 水果
     { keywords: ['西瓜'], unit: '个', grams: 4000, kcal: 31, protein: 0.5, fridgeDays: 5, freezerDays: 0 },
@@ -90,8 +90,14 @@
   const UNKNOWN = { unit: '份', grams: 0, kcal: 0, protein: 0, fridgeDays: 5, freezerDays: 0, known: false };
 
   // 按重量计算的单位：1 个单位多少克
-  const WEIGHT_UNITS = { 斤: 500, 两: 50, 公斤: 1000, 千克: 1000, kg: 1000, 克: 1, g: 1 };
-  const UNIT_PATTERN = '斤|两|公斤|千克|kg|克|g|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串|头|箱|提|桶|升|L|毫升|ml';
+  // 液体按 1 毫升 ≈ 1 克估算（加仑、夸脱、品脱是美国常用的牛奶、果汁单位）
+  const WEIGHT_UNITS = {
+    斤: 500, 两: 50, 公斤: 1000, 千克: 1000, kg: 1000, 克: 1, g: 1,
+    磅: 453.6, lb: 453.6, lbs: 453.6, 盎司: 28.35, oz: 28.35,
+    加仑: 3785, 夸脱: 946, 品脱: 473, 升: 1000, l: 1000, 毫升: 1, ml: 1,
+  };
+  // 长的写在前面，免得"公斤"被认成"斤"
+  const UNIT_PATTERN = '加仑|夸脱|品脱|盎司|公斤|千克|毫升|lbs|lb|oz|kg|ml|斤|两|克|g|磅|个|盒|块|瓶|根|条|份|碗|袋|把|只|颗|包|罐|片|串|头|箱|提|桶|升|l';
 
   function lookup(name) {
     const clean = String(name || '').replace(/[^\u4e00-\u9fa5A-Za-z]/g, '');
@@ -104,19 +110,22 @@
   // 从文字里拆出名字、数量、单位
   // 例如 "🥚 农家土鸡蛋 (10个)" / "猪肉 1斤" / "牛奶2盒" → { name, qty, unit }；没写数量就按 1 个默认单位
   function parseItem(text) {
-    const raw = String(text || '').trim();
+    // "半加仑""半斤" → 0.5
+    const raw = String(text || '').trim().replace(/半(?=\s*(加仑|斤|公斤|磅|打|盒|瓶|个|箱))/, '0.5');
     const re = new RegExp(`[（(]?\\s*(\\d+(?:\\.\\d+)?)\\s*(${UNIT_PATTERN})\\s*[)）]?\\s*$`, 'i');
     const match = raw.match(re);
     if (match) {
       const name = raw.slice(0, match.index).trim() || raw;
-      return { name, qty: parseFloat(match[1]), unit: match[2] };
+      const unit = /^[a-z]+$/i.test(match[2]) ? match[2].toLowerCase() : match[2];
+      return { name, qty: parseFloat(match[1]), unit: unit === 'l' ? 'L' : unit };
     }
     return { name: raw, qty: 1, unit: lookup(raw).unit };
   }
 
   // 某个数量大约多少克（不知道时返回 0）
   function toGrams(name, qty, unit) {
-    if (WEIGHT_UNITS[unit]) return qty * WEIGHT_UNITS[unit];
+    const u = /^[a-z]+$/i.test(unit || '') ? unit.toLowerCase() : unit;
+    if (WEIGHT_UNITS[u]) return qty * WEIGHT_UNITS[u];
     const food = lookup(name);
     // 用这种食材自己的单位（比如鸡蛋的"个"）换算；其他单位（比如"袋"）按 1 份估算
     return food.grams ? qty * food.grams : 0;

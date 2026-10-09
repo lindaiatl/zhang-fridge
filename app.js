@@ -362,6 +362,44 @@
     return Store.get('mealPlan') || {};
   }
 
+  // 自己写菜时，食材一栏只写了数量（如菜名"鸡蛋"、食材"4个"），就当成这道菜本身：鸡蛋 4个
+  function isQuantityOnly(name) {
+    return /^[\d.\s]*$/.test(name) || /^\d+(\.\d+)?\s*\S{1,3}$/.test(name) && parseItem(`x ${name}`).name === 'x';
+  }
+  function fixDishItems(dish) {
+    if (!dish.items || dish.items.length === 0) return dish;
+    let changed = false;
+    const items = dish.items.map((item) => {
+      if (!isQuantityOnly(String(item.name))) return item;
+      changed = true;
+      const text = String(item.name).trim();
+      // 只写了数字：表里认识、并且按个数算的（如鸡蛋"个"）用它的单位，其他用"份"
+      const food = lookup(dish.name);
+      const unit = food.known && !/斤|克|两/.test(food.unit) ? food.unit : '份';
+      const p = /^[\d.]+$/.test(text) ? { qty: parseFloat(text) || item.qty, unit } : parseItem(`x ${text}`);
+      return { name: dish.name, qty: p.qty || 1, unit: p.unit || item.unit };
+    });
+    return changed ? Object.assign({}, dish, { items }) : dish;
+  }
+  // 纠正食谱里已有的这类菜（返回 true 表示有改动并已保存）
+  function fixPlan() {
+    const plan = getPlan();
+    let changed = false;
+    const fixed = {};
+    Object.keys(plan).forEach((date) => {
+      fixed[date] = {};
+      Object.keys(plan[date] || {}).forEach((meal) => {
+        fixed[date][meal] = (plan[date][meal] || []).map((dish) => {
+          const f = fixDishItems(dish);
+          if (f !== dish) changed = true;
+          return f;
+        });
+      });
+    });
+    if (changed) Store.set('mealPlan', fixed);
+    return changed;
+  }
+
   function renderMenu() {
     const plan = getPlan();
     const dates = weekDates(weekOffset);
@@ -481,7 +519,7 @@
       showToast('请写菜名');
       return;
     }
-    addDish({ name, items: Recipes.parseIngredients($('custom-dish-items').value) });
+    addDish(fixDishItems({ name, items: Recipes.parseIngredients($('custom-dish-items').value) }));
   });
 
   $('dish-cancel').addEventListener('click', () => {
@@ -492,6 +530,11 @@
   function foodKey(name) {
     const food = lookup(name);
     return food.known ? food.keywords[0] : name.trim();
+  }
+
+  const NEVER_BUY = ['米饭'];
+  function pantryList() {
+    return (Store.get('settings') || {}).pantry || [];
   }
 
   // 让购买清单跟着食谱走：今天以后排好的所有菜 → 需要的食材 → 扣掉冰箱里和清单上已有的 → 清单里只留缺的
@@ -512,8 +555,10 @@
       .forEach((date) => {
         MEALS.forEach((meal) => {
           ((plan[date] || {})[meal] || []).forEach((dish) => {
-            (dish.items || []).forEach(({ name, qty, unit }) => {
+            (fixDishItems(dish).items || []).forEach(({ name, qty, unit }) => {
               const key = foodKey(name);
+              // 米饭现做现吃、"家里常备"的东西，不自动加进购买清单
+              if (NEVER_BUY.indexOf(key) !== -1 || pantryList().indexOf(key) !== -1) return;
               const grams = toGrams(name, qty, unit);
               if (!need[key]) need[key] = { name, unit, amount: 0, byWeight: grams > 0 };
               const n = need[key];
@@ -585,15 +630,56 @@
     $('shopping-list').innerHTML = items
       .map(
         (item) => `
-          <label class="shopping-item">
-            <input type="checkbox" data-id="${escapeHtml(item.id)}" ${item.bought ? 'checked' : ''} />
-            <span class="shopping-item-text ${item.bought ? 'bought-item' : ''}">
-              ${escapeHtml(item.name)}  [${escapeHtml(item.requester)}]
-            </span>
-          </label>`
+          <div class="shopping-row">
+            <label class="shopping-item">
+              <input type="checkbox" data-id="${escapeHtml(item.id)}" ${item.bought ? 'checked' : ''} />
+              <span class="shopping-item-text ${item.bought ? 'bought-item' : ''}">
+                ${escapeHtml(item.name)}  [${escapeHtml(item.requester)}]
+              </span>
+            </label>
+            <button class="record-x" data-delete-item="${escapeHtml(item.id)}" aria-label="删除">✕</button>
+          </div>`
       )
       .join('');
   }
+
+  function renderPantry() {
+    const pantry = pantryList();
+    $('pantry-card').hidden = pantry.length === 0;
+    $('pantry-list').innerHTML = pantry
+      .map((name) => `<span class="dish-chip">${escapeHtml(name)}<button class="chip-x" data-pantry="${escapeHtml(name)}" aria-label="撤销">✕</button></span>`)
+      .join('');
+  }
+
+  // 删除购买清单里的一项；食谱自动加的，记成"家里常备"，以后不再自动加
+  $('shopping-list').addEventListener('click', (e) => {
+    const button = e.target.closest('[data-delete-item]');
+    if (!button) return;
+    e.preventDefault();
+    const item = Store.get('shoppingList').find((i) => i.id === button.dataset.deleteItem);
+    if (!item) return;
+    Store.set('shoppingList', Store.get('shoppingList').filter((i) => i.id !== item.id));
+    if (item.requester === '食谱需要') {
+      const key = foodKey(parseItem(item.name).name);
+      const pantry = pantryList();
+      if (pantry.indexOf(key) === -1) {
+        Store.set('settings', Object.assign({}, Store.get('settings'), { pantry: pantry.concat(key) }));
+      }
+      showToast(`已删除：${item.name}\n以后食谱不再自动加「${key}」（当作家里常备）\n想恢复可以在清单下面撤销`, 4000);
+    } else {
+      showToast(`已删除：${item.name}`);
+    }
+  });
+
+  // 撤销"家里常备"：以后食谱又会自动加它
+  $('pantry-list').addEventListener('click', (e) => {
+    const button = e.target.closest('[data-pantry]');
+    if (!button) return;
+    const key = button.dataset.pantry;
+    Store.set('settings', Object.assign({}, Store.get('settings'), { pantry: pantryList().filter((k) => k !== key) }));
+    const { added } = syncShoppingWithMenu();
+    showToast(`「${key}」不再算家里常备${added.length ? `\n已加回购买清单：${added.join('、')}` : ''}`);
+  });
 
   // 勾选 / 取消勾选"已买到"
   $('shopping-list').addEventListener('change', (e) => {
@@ -1021,6 +1107,7 @@
   // ---------- 启动 ----------
   function renderAll() {
     renderFamilyName();
+    renderPantry();
     renderFridge();
     renderMenu();
     renderFamily();
@@ -1051,6 +1138,8 @@
       updateManifest();
       $('sync-status').textContent = ok ? '☁️ 已和家人实时同步' : '⚠️ 云端连接失败，暂时只保存在本机';
       if (ok && !me()) showWhoModal();
+      // 纠正以前"食材只写数量"的菜，并让购买清单跟着更新
+      if (ok && fixPlan()) syncShoppingWithMenu();
     });
   } else {
     $('switch-family').hidden = true;
