@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610141726" />
+  <link rel="stylesheet" href="style.css?v=202610141750" />
 </head>
 <body>
   <header class="top-bar">
@@ -37,6 +37,8 @@
         <h2 class="card-title">🧂 调料</h2>
         <div id="seasoning-list"></div>
       </div>
+
+      <p class="disclaimer">⚠️ 保存天数是参考值（参考美国农业部 FoodKeeper），有包装保质期的以包装为准，拿不准时宁可丢掉。详见右上角「❓ 说明」里的免责声明。</p>
     </section>
 
     <!-- 📅 本周食谱 -->
@@ -128,7 +130,7 @@
         <p class="muted-small">这是轻体力活动成年人的大致估算（参考《中国居民膳食指南》）；孩子、孕期、运动量大或有特殊健康情况的，请以医生或营养师建议为准。</p>
       </div>
 
-      <p class="note-text">营养数值是按常见食材估算的参考值，不是精确数据。</p>
+      <p class="disclaimer">⚠️ 营养数值是按常见食材估算的参考值，不是精确数据，不构成医疗或营养建议。详见「❓ 说明」里的免责声明。</p>
     </section>
   </main>
 
@@ -175,13 +177,16 @@
       <p>在「📏 常用单位」里选<b>美国</b>，食谱自动加的牛奶、果汁用加仑，肉菜用磅；选<b>中国</b>用盒和斤。</p>
 
       <h3>🧊 5. 冰箱</h3>
-      <p>快过期的排在最前面，红色表示 2 天内到期。点「剩 X 天 ✏️」可以改到期日；肉类可以点「❄️ 冻起来」，能放更久（冷冻的是浅蓝底）。盐、蚝油、酱油等放在最下面的「🧂 调料」区，用完点「用完了」。</p>
+      <p>快过期的排在最前面，红色表示 2 天内到期。保存天数参考美国农业部 FoodKeeper，<b>有包装保质期的以包装为准</b>，点「剩 X 天 ✏️」可以改；肉类可以点「❄️ 冻起来」，能放更久（冷冻的是浅蓝底）。盐、蚝油、酱油等放在最下面的「🧂 调料」区，用完点「用完了」。</p>
 
       <h3>🍽️ 6. 记录吃了多少</h3>
       <p>在冰箱里点食材右边绿色的「吃」，选全部、一半或自己填数量。没吃完的会留在冰箱里（卡片变成浅橙色），营养只按吃掉的量算。买错或扔掉的点「🗑 删除」，数量不对点「✏️ 改数量」（如 1箱、6瓶）。</p>
 
       <h3>📊 7. 营养大盘</h3>
       <p>谁在自己手机上点「吃」，就记在谁名下。每个人在「我的家庭」点「⚖️ 体重」填上体重，参考量就按体重算：热量 ≈ 体重(公斤) × 30 千卡，蛋白质 ≈ 体重(公斤) × 1 克（普通成年人标准）。体重可以写公斤或斤（如 55公斤 或 110斤）。记错的记录点左边的 ✕ 删除。数值是估算的参考值。</p>
+
+      <h3>⚠️ 免责声明</h3>
+      <p>本 App 的保存天数、热量和蛋白质都是<b>参考值</b>：保存天数参考美国农业部 FoodKeeper 食品保存指南（取较短、较安全的天数），营养数值参考常见食物成分表。它们只供家庭日常参考，<b>不构成食品安全、医疗或营养方面的专业建议</b>。食物还能不能吃，请以<b>包装上的保质期</b>和食物的实际状态（气味、颜色、质地）为准，拿不准时宁可丢掉。有过敏、特殊疾病、孕期或婴幼儿饮食等情况，请咨询医生或营养师。</p>
 
       <p class="note-text">所有功能免费，不需要注册账号。</p>
       <button id="help-close" class="big-button green">知道了</button>
@@ -257,11 +262,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610141726';</script>
-  <script src="firebase-config.js?v=202610141726"></script>
-  <script src="foods.js?v=202610141726"></script>
-  <script src="recipes.js?v=202610141726"></script>
-  <script src="store.js?v=202610141726"></script>
-  <script src="app.js?v=202610141726"></script>
+  <script>window.APP_VERSION = '?v=202610141750';</script>
+  <script src="firebase-config.js?v=202610141750"></script>
+  <script src="foods.js?v=202610141750"></script>
+  <script src="recipes.js?v=202610141750"></script>
+  <script src="store.js?v=202610141750"></script>
+  <script src="app.js?v=202610141750"></script>
 </body>
 </html>

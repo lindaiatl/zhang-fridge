@@ -1,79 +1,86 @@
 // 食材资料表：保存天数、单位重量、营养（全部内置，不需要联网、不收费）
 // - fridgeDays：冷藏大约能放几天；freezerDays：冷冻大约能放几天（0 表示不适合冷冻）
+//   参考美国农业部 FoodKeeper（2026-10 核对），有范围的取较短、较安全的天数；
+//   FoodKeeper 没有的（如饺子、油条、红薯、调料）是估算。有包装保质期的，以包装为准
 // - unit / grams：这种食材最常用的单位，以及 1 个单位大约多少克
 // - kcal / protein：每 100 克的热量（千卡）和蛋白质（克），参考常见食物成分表，是估算值
 // 匹配时从上往下找，名字里包含关键词就算命中，所以更具体的词要放在前面（如"酸奶"在"奶"前，"鸡胸"在"鸡"前）
 (function () {
   const FOODS = [
     // 奶、蛋
-    { keywords: ['奶酪', '芝士'], unit: '片', grams: 20, kcal: 328, protein: 25.7, fridgeDays: 30, freezerDays: 90 },
-    { keywords: ['酸奶'], unit: '盒', grams: 200, kcal: 72, protein: 3.2, fridgeDays: 14, freezerDays: 0 },
-    { keywords: ['牛奶', '特仑苏', '奶'], unit: '盒', grams: 250, kcal: 66, protein: 3.4, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['鸡蛋', '鸭蛋', '蛋'], unit: '个', grams: 50, kcal: 144, protein: 13.3, fridgeDays: 30, freezerDays: 0 },
+    // 月饼、蛋糕等糕点（放在「鸡蛋」「燕麦」前面，免得「蛋糕」被认成鸡蛋、「燕麦月饼」被认成燕麦）
+    { keywords: ['月饼', '蛋糕', '糕点', '点心', '蛋挞', '饼干', '酥'], unit: '个', grams: 100, kcal: 420, protein: 7, fridgeDays: 7, freezerDays: 180 },
+    { keywords: ['奶酪', '芝士'], unit: '片', grams: 20, kcal: 328, protein: 25.7, fridgeDays: 21, freezerDays: 90 },
+    { keywords: ['酸奶'], unit: '盒', grams: 200, kcal: 72, protein: 3.2, fridgeDays: 7, freezerDays: 30 },
+    { keywords: ['牛奶', '特仑苏', '奶'], unit: '盒', grams: 250, kcal: 66, protein: 3.4, fridgeDays: 7, freezerDays: 90 },
+    { keywords: ['鸡蛋', '鸭蛋', '蛋'], unit: '个', grams: 50, kcal: 144, protein: 13.3, fridgeDays: 21, freezerDays: 0 },
 
     // 肉
-    { keywords: ['和牛'], unit: '块', grams: 200, kcal: 250, protein: 17, fridgeDays: 3, freezerDays: 90 },
+    { keywords: ['和牛'], unit: '块', grams: 200, kcal: 250, protein: 17, fridgeDays: 3, freezerDays: 120 },
     { keywords: ['牛肉', '牛排', '牛腩'], unit: '斤', grams: 500, kcal: 125, protein: 20, fridgeDays: 3, freezerDays: 120 },
     { keywords: ['羊肉'], unit: '斤', grams: 500, kcal: 203, protein: 19, fridgeDays: 3, freezerDays: 120 },
-    { keywords: ['排骨'], unit: '斤', grams: 500, kcal: 278, protein: 16.7, fridgeDays: 3, freezerDays: 90 },
-    { keywords: ['瘦肉', '瘦猪肉', '里脊'], unit: '斤', grams: 500, kcal: 143, protein: 20.3, fridgeDays: 3, freezerDays: 90 },
-    { keywords: ['五花肉', '猪肉', '肉馅', '肉末'], unit: '斤', grams: 500, kcal: 395, protein: 13.2, fridgeDays: 3, freezerDays: 90 },
-    { keywords: ['培根', '火腿', '香肠'], unit: '包', grams: 200, kcal: 330, protein: 15, fridgeDays: 7, freezerDays: 60 },
-    { keywords: ['鸡胸'], unit: '块', grams: 200, kcal: 133, protein: 24.6, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['鸡腿'], unit: '个', grams: 150, kcal: 181, protein: 16, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['鸡翅'], unit: '个', grams: 50, kcal: 194, protein: 17.4, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['鸡'], unit: '只', grams: 1000, kcal: 167, protein: 19.3, fridgeDays: 2, freezerDays: 90 },
+    { keywords: ['排骨'], unit: '斤', grams: 500, kcal: 278, protein: 16.7, fridgeDays: 3, freezerDays: 120 },
+    // 肉末、肉馅：绞碎的肉坏得快，冷藏只能放 1～2 天
+    { keywords: ['肉末', '肉馅', '绞肉'], unit: '斤', grams: 500, kcal: 260, protein: 17, fridgeDays: 1, freezerDays: 90 },
+    { keywords: ['瘦肉', '瘦猪肉', '里脊'], unit: '斤', grams: 500, kcal: 143, protein: 20.3, fridgeDays: 3, freezerDays: 120 },
+    { keywords: ['五花肉', '猪肉'], unit: '斤', grams: 500, kcal: 395, protein: 13.2, fridgeDays: 3, freezerDays: 120 },
+    { keywords: ['火腿'], unit: '包', grams: 200, kcal: 330, protein: 15, fridgeDays: 3, freezerDays: 30 },
+    { keywords: ['培根', '香肠'], unit: '包', grams: 200, kcal: 330, protein: 15, fridgeDays: 7, freezerDays: 30 },
+    { keywords: ['鸡胸'], unit: '块', grams: 200, kcal: 133, protein: 24.6, fridgeDays: 1, freezerDays: 270 },
+    { keywords: ['鸡腿'], unit: '个', grams: 150, kcal: 181, protein: 16, fridgeDays: 1, freezerDays: 270 },
+    { keywords: ['鸡翅'], unit: '个', grams: 50, kcal: 194, protein: 17.4, fridgeDays: 1, freezerDays: 270 },
+    { keywords: ['鸡'], unit: '只', grams: 1000, kcal: 167, protein: 19.3, fridgeDays: 1, freezerDays: 270 },
 
     // 水产
-    { keywords: ['三文鱼'], unit: '块', grams: 200, kcal: 139, protein: 17.2, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['虾'], unit: '斤', grams: 500, kcal: 93, protein: 18.6, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['鱼'], unit: '条', grams: 500, kcal: 100, protein: 17, fridgeDays: 2, freezerDays: 90 },
+    { keywords: ['三文鱼'], unit: '块', grams: 200, kcal: 139, protein: 17.2, fridgeDays: 1, freezerDays: 60 },
+    { keywords: ['虾'], unit: '斤', grams: 500, kcal: 93, protein: 18.6, fridgeDays: 1, freezerDays: 180 },
+    { keywords: ['鱼'], unit: '条', grams: 500, kcal: 100, protein: 17, fridgeDays: 1, freezerDays: 120 },
 
     // 豆制品、主食
-    { keywords: ['豆浆'], unit: '盒', grams: 250, kcal: 31, protein: 3, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['豆浆'], unit: '盒', grams: 250, kcal: 31, protein: 3, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['油条'], unit: '根', grams: 80, kcal: 388, protein: 6.9, fridgeDays: 2, freezerDays: 30 },
-    { keywords: ['吐司'], unit: '袋', grams: 400, kcal: 278, protein: 8.8, fridgeDays: 5, freezerDays: 30 },
+    { keywords: ['吐司'], unit: '袋', grams: 400, kcal: 278, protein: 8.8, fridgeDays: 14, freezerDays: 90 },
     { keywords: ['面粉'], unit: '斤', grams: 500, kcal: 362, protein: 11.2, fridgeDays: 180, freezerDays: 0 },
     { keywords: ['大米'], unit: '斤', grams: 500, kcal: 346, protein: 7.4, fridgeDays: 180, freezerDays: 0 },
     { keywords: ['小米'], unit: '斤', grams: 500, kcal: 361, protein: 9, fridgeDays: 180, freezerDays: 0 },
     { keywords: ['燕麦'], unit: '斤', grams: 500, kcal: 367, protein: 15, fridgeDays: 180, freezerDays: 0 },
-    { keywords: ['花生'], unit: '斤', grams: 500, kcal: 574, protein: 24.8, fridgeDays: 90, freezerDays: 0 },
+    { keywords: ['花生'], unit: '斤', grams: 500, kcal: 574, protein: 24.8, fridgeDays: 360, freezerDays: 0 },
     { keywords: ['红薯'], unit: '个', grams: 250, kcal: 99, protein: 1.1, fridgeDays: 14, freezerDays: 0 },
     { keywords: ['可乐'], unit: '瓶', grams: 500, kcal: 43, protein: 0, fridgeDays: 180, freezerDays: 0 },
-    { keywords: ['豆腐'], unit: '块', grams: 300, kcal: 81, protein: 8.1, fridgeDays: 3, freezerDays: 30 },
+    { keywords: ['豆腐'], unit: '块', grams: 300, kcal: 81, protein: 8.1, fridgeDays: 7, freezerDays: 150 },
     { keywords: ['饺子', '馄饨', '包子'], unit: '袋', grams: 500, kcal: 240, protein: 9, fridgeDays: 2, freezerDays: 90 },
-    { keywords: ['米饭', '剩饭'], unit: '碗', grams: 200, kcal: 116, protein: 2.6, fridgeDays: 2, freezerDays: 30 },
-    { keywords: ['面包'], unit: '个', grams: 80, kcal: 313, protein: 8.3, fridgeDays: 5, freezerDays: 30 },
+    { keywords: ['米饭', '剩饭'], unit: '碗', grams: 200, kcal: 116, protein: 2.6, fridgeDays: 4, freezerDays: 180 },
+    { keywords: ['面包'], unit: '个', grams: 80, kcal: 313, protein: 8.3, fridgeDays: 14, freezerDays: 90 },
     { keywords: ['面条', '面'], unit: '份', grams: 200, kcal: 110, protein: 3.5, fridgeDays: 3, freezerDays: 30 },
-    { keywords: ['剩菜'], unit: '份', grams: 300, kcal: 120, protein: 5, fridgeDays: 2, freezerDays: 30 },
+    { keywords: ['剩菜'], unit: '份', grams: 300, kcal: 120, protein: 5, fridgeDays: 3, freezerDays: 30 },
 
     // 蔬菜
-    { keywords: ['西红柿', '番茄'], unit: '个', grams: 150, kcal: 20, protein: 0.9, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['黄瓜'], unit: '根', grams: 200, kcal: 16, protein: 0.8, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['土豆'], unit: '个', grams: 200, kcal: 81, protein: 2.6, fridgeDays: 30, freezerDays: 0 },
+    { keywords: ['西红柿', '番茄'], unit: '个', grams: 150, kcal: 20, protein: 0.9, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['黄瓜'], unit: '根', grams: 200, kcal: 16, protein: 0.8, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['土豆'], unit: '个', grams: 200, kcal: 81, protein: 2.6, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['胡萝卜'], unit: '根', grams: 150, kcal: 39, protein: 1, fridgeDays: 14, freezerDays: 0 },
-    { keywords: ['洋葱'], unit: '个', grams: 200, kcal: 40, protein: 1.1, fridgeDays: 30, freezerDays: 0 },
-    { keywords: ['西兰花', '花菜'], unit: '个', grams: 400, kcal: 36, protein: 4.1, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['豆芽'], unit: '份', grams: 250, kcal: 18, protein: 2.1, fridgeDays: 2, freezerDays: 0 },
-    { keywords: ['蘑菇', '香菇', '金针菇'], unit: '份', grams: 200, kcal: 26, protein: 2.2, fridgeDays: 4, freezerDays: 0 },
-    { keywords: ['青椒', '辣椒', '彩椒'], unit: '个', grams: 100, kcal: 22, protein: 1, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['茄子'], unit: '根', grams: 250, kcal: 23, protein: 1.1, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['大蒜', '蒜'], unit: '头', grams: 50, kcal: 128, protein: 4.5, fridgeDays: 30, freezerDays: 0 },
+    { keywords: ['洋葱'], unit: '个', grams: 200, kcal: 40, protein: 1.1, fridgeDays: 60, freezerDays: 0 },
+    { keywords: ['西兰花', '花菜'], unit: '个', grams: 400, kcal: 36, protein: 4.1, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['豆芽'], unit: '份', grams: 250, kcal: 18, protein: 2.1, fridgeDays: 5, freezerDays: 0 },
+    { keywords: ['蘑菇', '香菇', '金针菇'], unit: '份', grams: 200, kcal: 26, protein: 2.2, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['青椒', '辣椒', '彩椒'], unit: '个', grams: 100, kcal: 22, protein: 1, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['茄子'], unit: '根', grams: 250, kcal: 23, protein: 1.1, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['大蒜', '蒜'], unit: '头', grams: 50, kcal: 128, protein: 4.5, fridgeDays: 7, freezerDays: 0 },
     { keywords: ['葱', '姜', '香菜'], unit: '把', grams: 100, kcal: 30, protein: 1.6, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜', '油麦菜', '韭菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 4, freezerDays: 0 },
+    { keywords: ['青菜', '白菜', '菠菜', '生菜', '油菜', '小白菜', '空心菜', '芹菜', '油麦菜', '韭菜'], unit: '把', grams: 300, kcal: 20, protein: 1.5, fridgeDays: 3, freezerDays: 0 },
 
     // 水果
-    { keywords: ['西瓜'], unit: '个', grams: 4000, kcal: 31, protein: 0.5, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['哈密瓜', '甜瓜'], unit: '个', grams: 1500, kcal: 34, protein: 0.5, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['桃'], unit: '个', grams: 200, kcal: 42, protein: 0.6, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['梨'], unit: '个', grams: 250, kcal: 50, protein: 0.4, fridgeDays: 14, freezerDays: 0 },
-    { keywords: ['芒果'], unit: '个', grams: 300, kcal: 35, protein: 0.6, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['猕猴桃', '奇异果'], unit: '个', grams: 100, kcal: 61, protein: 0.8, fridgeDays: 14, freezerDays: 0 },
-    { keywords: ['苹果'], unit: '个', grams: 200, kcal: 53, protein: 0.4, fridgeDays: 30, freezerDays: 0 },
-    { keywords: ['香蕉'], unit: '根', grams: 120, kcal: 93, protein: 1.4, fridgeDays: 5, freezerDays: 0 },
-    { keywords: ['橙子', '橘子', '柑'], unit: '个', grams: 200, kcal: 48, protein: 0.8, fridgeDays: 14, freezerDays: 0 },
+    { keywords: ['西瓜'], unit: '个', grams: 4000, kcal: 31, protein: 0.5, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['哈密瓜', '甜瓜'], unit: '个', grams: 1500, kcal: 34, protein: 0.5, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['桃'], unit: '个', grams: 200, kcal: 42, protein: 0.6, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['梨'], unit: '个', grams: 250, kcal: 50, protein: 0.4, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['芒果'], unit: '个', grams: 300, kcal: 35, protein: 0.6, fridgeDays: 7, freezerDays: 0 },
+    { keywords: ['猕猴桃', '奇异果'], unit: '个', grams: 100, kcal: 61, protein: 0.8, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['苹果'], unit: '个', grams: 200, kcal: 53, protein: 0.4, fridgeDays: 28, freezerDays: 0 },
+    { keywords: ['香蕉'], unit: '根', grams: 120, kcal: 93, protein: 1.4, fridgeDays: 3, freezerDays: 0 },
+    { keywords: ['橙子', '橘子', '柑'], unit: '个', grams: 200, kcal: 48, protein: 0.8, fridgeDays: 10, freezerDays: 0 },
     { keywords: ['葡萄'], unit: '斤', grams: 500, kcal: 44, protein: 0.5, fridgeDays: 7, freezerDays: 0 },
-    { keywords: ['草莓', '蓝莓'], unit: '盒', grams: 250, kcal: 32, protein: 1, fridgeDays: 3, freezerDays: 90 },
+    { keywords: ['草莓', '蓝莓'], unit: '盒', grams: 250, kcal: 32, protein: 1, fridgeDays: 3, freezerDays: 360 },
 
     // 饮料（"=水" 表示名字正好是"水"才算，免得"水果""水饺"被当成水）
     { keywords: ['矿泉水', '纯净水', '苏打水', '饮用水', '=水'], unit: '瓶', grams: 550, kcal: 0, protein: 0, fridgeDays: 365, freezerDays: 0 },
@@ -87,7 +94,7 @@
 
   // 表里没有的食材：保存天数给个保守的默认值，营养标为"未收录"
   // 不确定能不能冻，所以默认不显示「冻起来」
-  const UNKNOWN = { unit: '份', grams: 0, kcal: 0, protein: 0, fridgeDays: 5, freezerDays: 0, known: false };
+  const UNKNOWN = { unit: '份', grams: 0, kcal: 0, protein: 0, fridgeDays: 3, freezerDays: 0, known: false };
 
   // 按重量计算的单位：1 个单位多少克
   // 液体按 1 毫升 ≈ 1 克估算（加仑、夸脱、品脱是美国常用的牛奶、果汁单位）

@@ -1041,3 +1041,11 @@ label.remaining-days {
   font-size: 15px;
   font-weight: 600;
 }
+
+.disclaimer {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #999;
+  text-align: center;
+  margin: 8px 4px 16px;
+}
