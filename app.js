@@ -80,6 +80,30 @@
     }, time);
   }
 
+  // 带一个按钮的提示（比如"撤销"），显示 6 秒
+  function showToastWithAction(text, label, action) {
+    const toast = $('toast');
+    toast.innerHTML = '';
+    toast.appendChild(document.createTextNode(text + '  '));
+    const button = document.createElement('button');
+    button.className = 'toast-action';
+    button.textContent = label;
+    button.onclick = (e) => {
+      e.stopPropagation();
+      toast.hidden = true;
+      action();
+    };
+    toast.appendChild(button);
+    toast.hidden = false;
+    toast.onclick = () => {
+      toast.hidden = true;
+    };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.hidden = true;
+    }, 6000);
+  }
+
   // ---------- 底部标签切换 ----------
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -546,22 +570,17 @@
     if (['斤', '两', '克', '公斤', '千克', 'g', 'kg'].indexOf(unit) !== -1) return '磅';
     return unit;
   }
-  function pantryList() {
-    return (Store.get('settings') || {}).pantry || [];
-  }
 
   // 让购买清单跟着食谱走：今天以后排好的所有菜 → 需要的食材 → 扣掉冰箱里和清单上已有的 → 清单里只留缺的
   // - 食谱自动加的、还没勾选的条目会按"现在还缺多少"重新计算（删菜后不再需要的就去掉）
   // - 手动添加的、已经勾选"买到了"的条目都不动
   // - 一种食材如果别的菜还要用，就不会被去掉
   // 返回 { added, removed }：这次新加的和去掉的食材文字
-  function syncShoppingWithMenu() {
-    const before = Store.get('shoppingList');
-    const isAuto = (i) => i.requester === '食谱需要' && !i.bought;
-    const kept = before.filter((i) => !isAuto(i));
+  // 今天以后排好的菜一共需要哪些食材：归类名 → { name, unit, amount（能换算成克就按克，否则按单位个数）, byWeight }
+  function computeNeed() {
     const plan = getPlan();
     const today = todayString();
-    const need = {}; // 归类名 → { name, unit, amount（能换算成克就按克，否则按单位个数）, byWeight }
+    const need = {};
 
     Object.keys(plan)
       .filter((date) => date >= today)
@@ -570,8 +589,8 @@
           ((plan[date] || {})[meal] || []).forEach((dish) => {
             (fixDishItems(dish).items || []).forEach(({ name, qty, unit }) => {
               const key = foodKey(name);
-              // 米饭现做现吃、"家里常备"的东西，不自动加进购买清单
-              if (NEVER_BUY.indexOf(key) !== -1 || pantryList().indexOf(key) !== -1) return;
+              // 米饭现做现吃，不自动加进购买清单
+              if (NEVER_BUY.indexOf(key) !== -1) return;
               const grams = toGrams(name, qty, unit);
               if (!need[key]) need[key] = { name, unit, amount: 0, byWeight: grams > 0 };
               const n = need[key];
@@ -580,6 +599,38 @@
           });
         });
       });
+    return need;
+  }
+
+  function syncShoppingWithMenu() {
+    const before = Store.get('shoppingList');
+    const isAuto = (i) => i.requester === '食谱需要' && !i.bought;
+    const kept = before.filter((i) => !isAuto(i));
+    const need = computeNeed();
+
+    // 点过 ✕ 的食材：当时食谱需要多少就"不买"多少；以后新排的菜多用到的部分才会再加上
+    const settings = Store.get('settings') || {};
+    const dismissed = Object.assign({}, settings.dismissed || {});
+    let settingsChanged = false;
+    // 旧版"家里常备"转成这种方式，然后不再显示
+    (settings.pantry || []).forEach((key) => {
+      if (need[key]) dismissed[key] = need[key].amount;
+      settingsChanged = true;
+    });
+    Object.keys(dismissed).forEach((key) => {
+      if (!need[key]) {
+        // 用到它的菜都没了：清掉记录，以后再排就重新正常加
+        delete dismissed[key];
+        settingsChanged = true;
+      } else {
+        need[key].amount -= dismissed[key];
+      }
+    });
+    if (settingsChanged) {
+      const next = Object.assign({}, settings, { dismissed });
+      delete next.pantry;
+      Store.set('settings', next);
+    }
 
     // 已经有的量：冰箱里的 + 清单上留着的（手动加的、已经勾选买到的）
     const haveItems = getFoods()
@@ -673,58 +724,59 @@
     });
   });
 
-  function renderPantry() {
-    const pantry = pantryList();
-    $('pantry-card').hidden = pantry.length === 0;
-    $('pantry-list').innerHTML = pantry
-      .map((name) => `<span class="dish-chip">${escapeHtml(name)}<button class="chip-x" data-pantry="${escapeHtml(name)}" aria-label="撤销">✕</button></span>`)
-      .join('');
-  }
-
-  // 删除购买清单里的一项；食谱自动加的，记成"家里常备"，以后不再自动加
+  // 删除购买清单里的一项：直接消失。食谱自动加的，记下"这次不买"，以后只有新排的菜多用到才会再加
   $('shopping-list').addEventListener('click', (e) => {
     const button = e.target.closest('[data-delete-item]');
     if (!button) return;
     e.preventDefault();
     const item = Store.get('shoppingList').find((i) => i.id === button.dataset.deleteItem);
     if (!item) return;
-    Store.set('shoppingList', Store.get('shoppingList').filter((i) => i.id !== item.id));
     if (item.requester === '食谱需要') {
       const key = foodKey(parseItem(item.name).name);
-      const pantry = pantryList();
-      if (pantry.indexOf(key) === -1) {
-        Store.set('settings', Object.assign({}, Store.get('settings'), { pantry: pantry.concat(key) }));
+      const need = computeNeed()[key];
+      if (need) {
+        const settings = Store.get('settings') || {};
+        const dismissed = Object.assign({}, settings.dismissed || {}, { [key]: need.amount });
+        Store.set('settings', Object.assign({}, settings, { dismissed }));
       }
-      showToast(`已删除：${item.name}\n以后食谱不再自动加「${key}」（当作家里常备）\n想恢复可以在清单下面撤销`, 4000);
-    } else {
-      showToast(`已删除：${item.name}`);
     }
+    Store.set('shoppingList', Store.get('shoppingList').filter((i) => i.id !== item.id));
+    showToast(`已删除：${item.name}`);
   });
 
-  // 撤销"家里常备"：以后食谱又会自动加它
-  $('pantry-list').addEventListener('click', (e) => {
-    const button = e.target.closest('[data-pantry]');
-    if (!button) return;
-    const key = button.dataset.pantry;
-    Store.set('settings', Object.assign({}, Store.get('settings'), { pantry: pantryList().filter((k) => k !== key) }));
-    const { added } = syncShoppingWithMenu();
-    showToast(`「${key}」不再算家里常备${added.length ? `\n已加回购买清单：${added.join('、')}` : ''}`);
-  });
-
-  // 勾选 / 取消勾选"已买到"
-  $('shopping-list').addEventListener('change', (e) => {
-    if (e.target.type !== 'checkbox') return;
-    const id = e.target.dataset.id;
-    let changed = null;
-    const items = Store.get('shoppingList').map((item) => {
-      if (item.id !== id) return item;
-      changed = Object.assign({}, item, { bought: e.target.checked });
-      return changed;
+  // 买到：勾选一下就直接放进冰箱，从购买清单消失；提示里可以撤销
+  function moveToFridge(items) {
+    const newFoods = items.map((item, i) => {
+      const parsed = parseItem(item.name);
+      return {
+        id: `${item.id}-${Date.now()}-${i}`,
+        name: parsed.name,
+        qty: parsed.qty,
+        unit: parsed.unit,
+        storage: '冷藏',
+        // 按食材自己的冷藏天数算到期日，比如鱼 2 天、鸡蛋 30 天
+        expireDate: addDays(todayString(), shelfDays(parsed.name, '冷藏')),
+        addedBy: `${myName()}买入`,
+        owner: '全家',
+      };
     });
-    Store.set('shoppingList', items);
-    if (changed) {
-      showToast(changed.bought ? `${shortName(changed.name)}已买到！` : `${shortName(changed.name)}取消购买`);
-    }
+    const ids = items.map((i) => i.id);
+    saveFoods(getFoods().concat(newFoods));
+    Store.set('shoppingList', Store.get('shoppingList').filter((i) => ids.indexOf(i.id) === -1));
+    return newFoods;
+  }
+
+  $('shopping-list').addEventListener('change', (e) => {
+    if (e.target.type !== 'checkbox' || !e.target.checked) return;
+    const item = Store.get('shoppingList').find((i) => i.id === e.target.dataset.id);
+    if (!item) return;
+    const [food] = moveToFridge([item]);
+    showToastWithAction(`✅ ${shortName(item.name)}已放进冰箱`, '撤销', () => {
+      // 撤销：从冰箱拿出来，放回购买清单
+      saveFoods(getFoods().filter((f) => f.id !== food.id));
+      Store.set('shoppingList', Store.get('shoppingList').concat(Object.assign({}, item, { bought: false })));
+      showToast(`已撤销，${shortName(item.name)}放回了购买清单`);
+    });
   });
 
   // 手动添加要买的食材
@@ -748,33 +800,6 @@
     );
     input.value = '';
     showToast('添加成功！');
-  });
-
-  // 买到：勾选的食材进冰箱，从购买清单移除
-  $('confirm-purchase').addEventListener('click', () => {
-    const items = Store.get('shoppingList');
-    const bought = items.filter((item) => item.bought);
-    if (bought.length === 0) {
-      showToast('没有勾选任何已购买物品', 2000);
-      return;
-    }
-    const newFoods = bought.map((item, i) => {
-      const parsed = parseItem(item.name);
-      return {
-        id: `${item.id}-${Date.now()}-${i}`,
-        name: parsed.name,
-        qty: parsed.qty,
-        unit: parsed.unit,
-        storage: '冷藏',
-        // 按食材自己的冷藏天数算到期日，比如鱼 2 天、鸡蛋 30 天
-        expireDate: addDays(todayString(), shelfDays(parsed.name, '冷藏')),
-        addedBy: `${myName()}买入`,
-        owner: '全家',
-      };
-    });
-    saveFoods(getFoods().concat(newFoods));
-    Store.set('shoppingList', items.filter((item) => !item.bought));
-    showToast(`${bought.map((item) => shortName(item.name)).join('、')}已入库！可前往"共享大冰箱"查看`, 2500);
   });
 
   // 填自己的体重：营养大盘按体重算每个人的参考热量和蛋白质
@@ -1140,7 +1165,6 @@
   // ---------- 启动 ----------
   function renderAll() {
     renderFamilyName();
-    renderPantry();
     renderRegion();
     renderFridge();
     renderMenu();
@@ -1174,6 +1198,12 @@
       if (ok && !me()) showWhoModal();
       // 纠正以前"食材只写数量"的菜，并让购买清单跟着更新
       if (ok && fixPlan()) syncShoppingWithMenu();
+      // 以前勾选了但还没点"买到"的，现在直接放进冰箱
+      const ticked = ok ? Store.get('shoppingList').filter((i) => i.bought) : [];
+      if (ticked.length) {
+        moveToFridge(ticked);
+        showToast(`之前勾选过的已放进冰箱：${ticked.map((i) => shortName(i.name)).join('、')}`, 4000);
+      }
     });
   } else {
     $('switch-family').hidden = true;

@@ -1030,3 +1030,14 @@ label.remaining-days {
 .week-switch + .hint-text {
   margin-top: 10px;
 }
+
+.toast-action {
+  margin-left: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 12px;
+  font-size: 15px;
+  font-weight: 600;
+}

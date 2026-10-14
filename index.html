@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610082145" />
+  <link rel="stylesheet" href="style.css?v=202610141726" />
 </head>
 <body>
   <header class="top-bar">
@@ -24,7 +24,7 @@
 
   <main>
     <!-- 🏠 共享大冰箱 -->
-    <section id="page-fridge" class="page active">
+    <section id="page-fridge" class="page">
       <p class="welcome-text">欢迎来到<span class="family-name">家庭大冰箱</span>！这里是全家共享的食物管家。</p>
 
       <div class="card">
@@ -52,7 +52,7 @@
     </section>
 
     <!-- 👥 我的家庭 -->
-    <section id="page-family" class="page">
+    <section id="page-family" class="page active">
       <h1 class="page-title">🏡 <span class="family-name">家庭大冰箱</span> · 家庭控制台</h1>
 
       <div class="family-id-card">
@@ -66,7 +66,6 @@
       <div class="card">
         <h2 class="card-title">家庭成员</h2>
         <div id="member-list"></div>
-        <button id="confirm-purchase" class="big-button green">🛒 买到</button>
       </div>
 
       <div class="card">
@@ -85,10 +84,6 @@
           <button type="submit" class="add-item-button">➕ 添加</button>
         </form>
         <div id="shopping-list"></div>
-        <div id="pantry-card" class="pantry" hidden>
-          <p class="hint-text left">🏠 家里常备（食谱不会自动加，点 ✕ 撤销）：</p>
-          <div id="pantry-list" class="meal-dishes"></div>
-        </div>
       </div>
 
       <button id="invite-button" class="big-button orange">✉️ 邀请新成员加入家庭</button>
@@ -139,9 +134,9 @@
 
   <!-- 底部标签栏 -->
   <nav class="tab-bar">
-    <button class="tab active" data-page="fridge">🏠 共享大冰箱</button>
-    <button class="tab" data-page="family">👥 我的家庭</button>
+    <button class="tab active" data-page="family">👥 我的家庭</button>
     <button class="tab" data-page="menu">📅 本周食谱</button>
+    <button class="tab" data-page="fridge">🏠 共享大冰箱</button>
     <button class="tab" data-page="nutrition">📊 营养大盘</button>
   </nav>
 
@@ -175,8 +170,8 @@
       <p>在「本周食谱」里给每天的早餐、午餐、晚餐点「＋ 加菜」，从家常菜里选，或自己写菜名和食材（如：羊肉 1斤，葱 1把；如果菜本身就是要买的东西，食材栏只写数量也行，如菜名"鸡蛋"、食材"4个"）。冰箱里没有的食材会<b>自动放进购买清单</b>；删掉一道菜，不再需要的食材也会自动去掉。米饭现做现吃，不会自动加。</p>
 
       <h3>🛒 4. 买菜</h3>
-      <p>「我的家庭」页的购买清单可以自己添加（写上数量，如：猪肉 1斤、牛奶 1加仑、牛肉 2磅）。买到后勾选，再点「🛒 买到」，食材就进冰箱，并按食材自动算好能放几天。</p>
-      <p>不要的条目点右边的 ✕ 删除。如果删的是食谱自动加的，会放进清单下面的「🏠 家里常备」，以后食谱不再自动加它；点那里的 ✕ 可以撤销。</p>
+      <p>「我的家庭」页的购买清单可以自己添加（写上数量，如：猪肉 1斤、牛奶 1加仑、牛肉 2磅）。买到一样就<b>勾选一样</b>，它会直接放进冰箱，并按食材自动算好能放几天；勾错了点提示里的「撤销」就放回清单。</p>
+      <p>不要的条目点右边的 ✕，直接删除。食谱自动加的删掉后不会再自动加回来，除非以后又排了用到它的新菜。</p>
       <p>在「📏 常用单位」里选<b>美国</b>，食谱自动加的牛奶、果汁用加仑，肉菜用磅；选<b>中国</b>用盒和斤。</p>
 
       <h3>🧊 5. 冰箱</h3>
@@ -262,11 +257,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610082145';</script>
-  <script src="firebase-config.js?v=202610082145"></script>
-  <script src="foods.js?v=202610082145"></script>
-  <script src="recipes.js?v=202610082145"></script>
-  <script src="store.js?v=202610082145"></script>
-  <script src="app.js?v=202610082145"></script>
+  <script>window.APP_VERSION = '?v=202610141726';</script>
+  <script src="firebase-config.js?v=202610141726"></script>
+  <script src="foods.js?v=202610141726"></script>
+  <script src="recipes.js?v=202610141726"></script>
+  <script src="store.js?v=202610141726"></script>
+  <script src="app.js?v=202610141726"></script>
 </body>
 </html>
