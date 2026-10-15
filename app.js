@@ -7,8 +7,12 @@
   // 购买清单上的文字：能拆出数量的，单位按语言显示
   function itemText(text) {
     const p = parseItem(text);
-    return /\d/.test(text) ? `${p.name} ${amt(p.qty, p.unit)}` : text;
+    return /\d/.test(text) ? `${Recipes.ingredient(p.name, I18N.lang)} ${amt(p.qty, p.unit)}` : text;
   }
+  // 菜名：内置的菜按语言显示英文名
+  const dishLabel = (name) => Recipes.label(name, I18N.lang);
+  // 食材名：内置菜谱里的食材（存的是中文）在英文界面显示英文；家人自己写的不变
+  const foodLabel = (name) => Recipes.ingredient(name, I18N.lang);
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18N.t(key, vars);
   const SEP = () => t('sep');
@@ -147,7 +151,7 @@
       // 打开食谱页时补查一次：之前排的菜如果还缺食材，补进购买清单
       if (tab.dataset.page === 'menu') {
         const { added } = syncShoppingWithMenu();
-        if (added.length) showToast(t('menuMissing', { items: added.join(SEP()) }), 3500);
+        if (added.length) showToast(t('menuMissing', { items: added.map(itemText).join(SEP()) }), 3500);
       }
     });
   });
@@ -220,7 +224,7 @@
             return `
           <div class="food-card ${frozen ? 'frozen-card' : ''} ${partial ? 'partial-card' : ''}">
             <div class="food-info">
-              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${partial ? t('left') : ''}${escapeHtml(amt(food.qty, food.unit))}${partial ? t('leftSuffix') : ''}</span>${partial ? ` <span class="partial-tag">${t('partlyEaten')}</span>` : ''}</div>
+              <div class="food-name">${escapeHtml(foodLabel(food.name))} <span class="food-qty">${partial ? t('left') : ''}${escapeHtml(amt(food.qty, food.unit))}${partial ? t('leftSuffix') : ''}</span>${partial ? ` <span class="partial-tag">${t('partlyEaten')}</span>` : ''}</div>
               <div class="food-details">
                 <span class="storage-tag ${frozen ? 'frozen' : ''}">${frozen ? t('frozen') : t('chilled')}</span>
                 <label class="remaining-days ${remain.cls}" title="${t('editDateTitle')}">
@@ -242,7 +246,7 @@
       .map(
         (food) => `
           <div class="seasoning-row">
-            <span class="seasoning-name">${escapeHtml(food.name)} <span class="food-qty">${escapeHtml(amt(food.qty, food.unit))}</span></span>
+            <span class="seasoning-name">${escapeHtml(foodLabel(food.name))} <span class="food-qty">${escapeHtml(amt(food.qty, food.unit))}</span></span>
             <button class="small-button" data-action="qty" data-id="${escapeHtml(food.id)}">✏️</button>
             <button class="small-button gray" data-action="usedup" data-id="${escapeHtml(food.id)}">${t('usedUp')}</button>
           </div>`
@@ -322,7 +326,7 @@
     const food = getFoods().find((f) => f.id === id);
     if (!food) return;
     eatingId = id;
-    $('eat-title').textContent = `🍽️ ${food.name}`;
+    $('eat-title').textContent = `🍽️ ${foodLabel(food.name)}`;
     $('eat-left').textContent = t('eatLeft', { qty: amt(food.qty, food.unit) });
     $('eat-unit').textContent = amt(1, food.unit).replace(/^1\s*/, '');
     $('eat-amount').value = '';
@@ -470,7 +474,7 @@
           const chips = (day[meal] || [])
             .map(
               (dish, i) =>
-                `<span class="dish-chip">${escapeHtml(dish.name)}<button class="chip-x" data-action="remove" data-date="${date}" data-meal="${meal}" data-index="${i}" aria-label="${t('delete')}">✕</button></span>`
+                `<span class="dish-chip">${escapeHtml(dishLabel(dish.name))}<button class="chip-x" data-action="remove" data-date="${date}" data-meal="${meal}" data-index="${i}" aria-label="${t('delete')}">✕</button></span>`
             )
             .join('');
           return `
@@ -524,9 +528,9 @@
       const { removed, added } = syncShoppingWithMenu();
       if (removed.length || added.length) {
         showToast(
-          t('dishRemoved', { name: removedDish ? removedDish.name : t('thisDish') }) +
-            (removed.length ? t('dishRemovedFrom', { items: removed.join(SEP()) }) : '') +
-            (added.length ? t('dishRemovedNeed', { items: added.join(SEP()) }) : ''),
+          t('dishRemoved', { name: removedDish ? dishLabel(removedDish.name) : t('thisDish') }) +
+            (removed.length ? t('dishRemovedFrom', { items: removed.map(itemText).join(SEP()) }) : '') +
+            (added.length ? t('dishRemovedNeed', { items: added.map(itemText).join(SEP()) }) : ''),
           3500
         );
       }
@@ -541,9 +545,11 @@
     // 先列这一顿常吃的，再列其他的（早餐吃面条、晚餐吃饺子也行）
     const primary = Recipes.list(meal);
     const names = primary.map((r) => r.name);
-    const recipes = primary.concat(Recipes.list().filter((r) => names.indexOf(r.name) === -1));
+    let recipes = primary.concat(Recipes.list().filter((r) => names.indexOf(r.name) === -1));
+    // 英文界面把美式家常菜排在前面
+    if (I18N.lang === 'en') recipes = recipes.filter((r) => r.us).concat(recipes.filter((r) => !r.us));
     $('dish-options').innerHTML = recipes
-      .map((r) => `<button class="who-option" data-recipe="${escapeHtml(r.name)}">${escapeHtml(r.name)}</button>`)
+      .map((r) => `<button class="who-option" data-recipe="${escapeHtml(r.name)}">${escapeHtml(dishLabel(r.name))}</button>`)
       .join('');
     $('custom-dish-name').value = '';
     $('custom-dish-items').value = '';
@@ -558,8 +564,8 @@
     const added = date >= todayString() ? syncShoppingWithMenu().added : [];
     showToast(
       added.length
-        ? t('dishAdded', { name: dish.name, items: added.join(SEP()) })
-        : t('dishAddedAllHave', { name: dish.name }),
+        ? t('dishAdded', { name: dishLabel(dish.name), items: added.map(itemText).join(SEP()) })
+        : t('dishAddedAllHave', { name: dishLabel(dish.name) }),
       3000
     );
   }
@@ -1019,7 +1025,7 @@
         (r) => `
           <div class="row">
             <button class="record-x" data-record="${escapeHtml(r.id)}" aria-label="${t('delete')}">✕</button>
-            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${escapeHtml(amt(r.qty, r.unit))}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
+            <span class="row-name">${escapeHtml(foodLabel(r.name))}${r.qty != null ? ` <span class="food-qty">${escapeHtml(amt(r.qty, r.unit))}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
             ${
               r.known
                 ? `<span class="row-numbers">${r.kcal} ${t('kcal')} · ${r.protein} ${t('gram')}</span>`
