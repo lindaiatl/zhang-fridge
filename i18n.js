@@ -36,6 +36,7 @@
     expiredDays: { zh: '⚠️ 已过期 {n} 天', en: '⚠️ Expired {n}d ago' },
     daysLeft: { zh: '⏱️ 剩 {n} 天', en: '⏱️ {n} days left' },
     dayLeft: { zh: '⏱️ 剩 1 天', en: '⏱️ 1 day left' },
+    expiresToday: { zh: '⏱️ 今天到期', en: '⏱️ Expires today' },
     editDateTitle: { zh: '点一下修改到期日', en: 'Tap to change the date' },
     chilled: { zh: '🧊 冷藏', en: '🧊 Fridge' },
     frozen: { zh: '❄️ 冷冻', en: '❄️ Freezer' },

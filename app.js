@@ -7,12 +7,20 @@
   // 购买清单上的文字：能拆出数量的，单位按语言显示
   function itemText(text) {
     const p = parseItem(text);
-    return /\d/.test(text) ? `${Recipes.ingredient(p.name, I18N.lang)} ${amt(p.qty, p.unit)}` : text;
+    return /\d/.test(text) ? `${foodLabel(p.name)} ${amt(p.qty, p.unit)}` : foodLabel(text);
   }
   // 菜名：内置的菜按语言显示英文名
-  const dishLabel = (name) => Recipes.label(name, I18N.lang);
-  // 食材名：内置菜谱里的食材（存的是中文）在英文界面显示英文；家人自己写的不变
-  const foodLabel = (name) => Recipes.ingredient(name, I18N.lang);
+  // 菜名、食材名按语言显示：内置菜谱有英文名；其他常见中文食材名查对照表，查不到的原样显示
+  function dishLabel(name) {
+    if (I18N.lang !== 'en') return name;
+    const label = Recipes.label(name, 'en');
+    return label !== name ? label : FoodNames.englishName(name);
+  }
+  function foodLabel(name) {
+    if (I18N.lang !== 'en') return name;
+    const label = Recipes.ingredient(name, 'en');
+    return label !== name ? label : FoodNames.englishName(name);
+  }
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18N.t(key, vars);
   const SEP = () => t('sep');
@@ -195,7 +203,7 @@
     let cls = 'green';
     if (days <= 2) cls = 'red';
     else if (days <= 5) cls = 'orange';
-    const text = days < 0 ? t('expiredDays', { n: -days }) : (days === 1 ? t('dayLeft') : t('daysLeft', { n: days }));
+    const text = days < 0 ? t('expiredDays', { n: -days }) : (days === 0 ? t('expiresToday') : days === 1 ? t('dayLeft') : t('daysLeft', { n: days }));
     return { days, cls, text };
   }
 
