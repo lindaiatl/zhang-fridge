@@ -1049,3 +1049,20 @@ label.remaining-days {
   text-align: center;
   margin: 8px 4px 16px;
 }
+
+/* 中英双语：长段落（说明、算法）分成两块，只显示当前语言那一块 */
+body[data-lang="zh"] [data-lang-block="en"],
+body[data-lang="en"] [data-lang-block="zh"] {
+  display: none;
+}
+
+.lang-button {
+  position: absolute;
+  left: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #666;
+}

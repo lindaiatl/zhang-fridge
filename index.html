@@ -14,132 +14,142 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202610141750" />
+  <link rel="stylesheet" href="style.css?v=202610151730" />
 </head>
 <body>
   <header class="top-bar">
     <span class="family-name">家庭大冰箱</span>
-    <button id="help-button" class="help-button" aria-label="使用说明">❓ 说明</button>
+    <button id="lang-button" class="lang-button" data-i18n="langSwitch">EN</button>
+    <button id="help-button" class="help-button" aria-label="Help" data-i18n="help">❓ 说明</button>
   </header>
 
   <main>
     <!-- 🏠 共享大冰箱 -->
     <section id="page-fridge" class="page">
-      <p class="welcome-text">欢迎来到<span class="family-name">家庭大冰箱</span>！这里是全家共享的食物管家。</p>
+      <p id="welcome-text" class="welcome-text"></p>
 
       <div class="card">
-        <h2 class="card-title">冰箱里的食材</h2>
-        <p class="hint-text">快过期的排在最前面。点 ✏️ 可以改到期日。浅蓝底是冷冻，浅橙底是已吃一部分。</p>
+        <h2 class="card-title" data-i18n="fridgeTitle">冰箱里的食材</h2>
+        <p class="hint-text" data-i18n="fridgeHint"></p>
         <div id="food-list"></div>
       </div>
 
       <div id="seasoning-card" class="card" hidden>
-        <h2 class="card-title">🧂 调料</h2>
+        <h2 class="card-title" data-i18n="seasonings">🧂 调料</h2>
         <div id="seasoning-list"></div>
       </div>
 
-      <p class="disclaimer">⚠️ 保存天数是参考值（参考美国农业部 FoodKeeper），有包装保质期的以包装为准，拿不准时宁可丢掉。详见右上角「❓ 说明」里的免责声明。</p>
+      <p class="disclaimer" data-i18n="fridgeDisclaimer">⚠️ 保存天数是参考值（参考美国农业部 FoodKeeper），有包装保质期的以包装为准，拿不准时宁可丢掉。详见右上角「❓ 说明」里的免责声明。</p>
     </section>
 
     <!-- 📅 本周食谱 -->
     <section id="page-menu" class="page">
-      <h1 class="page-title">📅 一周家庭食谱</h1>
+      <h1 class="page-title" data-i18n="menuTitle">📅 一周家庭食谱</h1>
       <p id="week-range" class="sub-text"></p>
       <div class="week-switch">
-        <button class="week-button active" data-week="0">本周</button>
-        <button class="week-button" data-week="1">下周</button>
+        <button class="week-button active" data-week="0" data-i18n="thisWeek">本周</button>
+        <button class="week-button" data-week="1" data-i18n="nextWeek">下周</button>
       </div>
       <div id="menu-days"></div>
-      <p class="note-text">加菜后，冰箱里没有的食材会自动放进「我的家庭」页的购买清单（已经有的不会重复加）。</p>
+      <p class="note-text" data-i18n="menuNote">加菜后，冰箱里没有的食材会自动放进「我的家庭」页的购买清单（已经有的不会重复加）。</p>
     </section>
 
     <!-- 👥 我的家庭 -->
     <section id="page-family" class="page active">
-      <h1 class="page-title">🏡 <span class="family-name">家庭大冰箱</span> · 家庭控制台</h1>
+      <h1 class="page-title">🏡 <span class="family-name">家庭大冰箱</span></h1>
 
       <div class="family-id-card">
-        <div class="family-id-label">家庭唯一 Family ID：</div>
+        <div class="family-id-label" data-i18n="familyIdLabel">家庭唯一 Family ID：</div>
         <div id="family-id" class="family-id">📌 本机模式</div>
         <div id="sync-status" class="sync-status"></div>
-        <button id="rename-family" class="switch-family-button">✏️ 改家庭名</button>
-        <button id="switch-family" class="switch-family-button">🔄 切换到别的家庭</button>
+        <button id="rename-family" class="switch-family-button" data-i18n="renameFamily">✏️ 改家庭名</button>
+        <button id="switch-family" class="switch-family-button" data-i18n="switchFamily">🔄 切换到别的家庭</button>
       </div>
 
       <div class="card">
-        <h2 class="card-title">家庭成员</h2>
+        <h2 class="card-title" data-i18n="members">家庭成员</h2>
         <div id="member-list"></div>
       </div>
 
       <div class="card">
-        <h2 class="card-title">📏 常用单位</h2>
+        <h2 class="card-title" data-i18n="units">📏 常用单位</h2>
         <div class="week-switch">
-          <button class="week-button region-button" data-region="CN">中国（盒、斤）</button>
-          <button class="week-button region-button" data-region="US">美国（加仑、磅）</button>
+          <button class="week-button region-button" data-region="CN" data-i18n="unitsCN">中国（盒、斤）</button>
+          <button class="week-button region-button" data-region="US" data-i18n="unitsUS">美国（加仑、磅）</button>
         </div>
-        <p class="hint-text">食谱自动加进购买清单时按这里的单位写。自己添加时什么单位都可以写。</p>
+        <p class="hint-text" data-i18n="unitsHint">食谱自动加进购买清单时按这里的单位写。自己添加时什么单位都可以写。</p>
       </div>
 
       <div class="card">
-        <h2 class="card-title">🗒️ 购买清单</h2>
+        <h2 class="card-title" data-i18n="shoppingList">🗒️ 购买清单</h2>
         <form id="add-item-form" class="add-item-bar">
           <input id="new-item-input" class="add-item-input" placeholder="食材和数量，如：猪肉 1斤" />
-          <button type="submit" class="add-item-button">➕ 添加</button>
+          <button type="submit" class="add-item-button" data-i18n="addBtn">➕ 添加</button>
         </form>
         <div id="shopping-list"></div>
       </div>
 
-      <button id="invite-button" class="big-button orange">✉️ 邀请新成员加入家庭</button>
+      <button id="invite-button" class="big-button orange" data-i18n="invite">✉️ 邀请新成员加入家庭</button>
     </section>
 
     <!-- 📊 营养大盘 -->
     <section id="page-nutrition" class="page">
-      <h1 class="page-title">📊 全家健康营养大盘</h1>
+      <h1 class="page-title" data-i18n="nutritionTitle">📊 全家健康营养大盘</h1>
       <p id="today-text" class="sub-text"></p>
 
       <div class="total-card">
         <div class="total-item">
-          <div class="total-label">🔥 总热量</div>
-          <div class="total-value"><span id="total-kcal">0</span><span class="total-unit"> 千卡</span></div>
+          <div class="total-label" data-i18n="totalKcal">🔥 总热量</div>
+          <div class="total-value"><span id="total-kcal">0</span><span class="total-unit"> <span data-i18n="kcal">千卡</span></span></div>
           <div class="progress-bar"><div id="kcal-fill" class="progress-fill kcal-fill"></div></div>
           <div id="kcal-goal" class="goal-text"></div>
         </div>
         <div class="total-item">
-          <div class="total-label">💪 蛋白质</div>
-          <div class="total-value"><span id="total-protein">0</span><span class="total-unit"> 克</span></div>
+          <div class="total-label" data-i18n="totalProtein">💪 蛋白质</div>
+          <div class="total-value"><span id="total-protein">0</span><span class="total-unit"> <span data-i18n="gram">克</span></span></div>
           <div class="progress-bar"><div id="protein-fill" class="progress-fill protein-fill"></div></div>
           <div id="protein-goal" class="goal-text"></div>
         </div>
       </div>
 
       <div id="member-stats-card" class="card" hidden>
-        <h2 class="card-title left">👥 每个人</h2>
+        <h2 class="card-title left" data-i18n="perPerson">👥 每个人</h2>
         <div id="member-stats"></div>
       </div>
 
       <div class="card">
-        <h2 class="card-title left">🍽️ 今天吃的食材</h2>
+        <h2 class="card-title left" data-i18n="todayEaten">🍽️ 今天吃的食材</h2>
         <div id="eaten-list"></div>
       </div>
 
       <div class="card formula-card">
-        <h2 class="card-title left">📐 参考量怎么算</h2>
+        <h2 class="card-title left" data-i18n="formulaTitle">📐 参考量怎么算</h2>
+        <div data-lang-block="zh">
         <p>每个人在「我的家庭」点自己名字旁的「⚖️ 体重」填上公斤数，就按体重算：</p>
         <p class="formula">每天热量 ≈ 体重(公斤) × 30 千卡<br />每天蛋白质 ≈ 体重(公斤) × 1 克（普通成年人）</p>
         <p>例如 60 公斤：约 1800 千卡、60 克蛋白质。没填体重的按成年人平均 2000 千卡、60 克算。全家参考量是每个人加起来。</p>
         <p>蛋白质按普通成年人的标准 <b>1.0 克/公斤</b> 算。（经常健身增肌的人一般会用到 1.6 克/公斤，仅供参考。）</p>
         <p class="muted-small">这是轻体力活动成年人的大致估算（参考《中国居民膳食指南》）；孩子、孕期、运动量大或有特殊健康情况的，请以医生或营养师建议为准。</p>
       </div>
+        <div data-lang-block="en">
+        <p>Each person taps “⚖️ Weight” next to their name on the Family tab. The daily reference is then based on body weight:</p>
+        <p class="formula">Calories ≈ weight (kg) × 30 kcal<br />Protein ≈ weight (kg) × 1 g (typical adult)</p>
+        <p>For example, 60 kg (132 lb) ≈ 1,800 kcal and 60 g of protein. Without a weight, we use an adult average of 2,000 kcal and 60 g. The family reference is everyone added together.</p>
+        <p>Protein uses the typical-adult standard of <b>1.0 g per kg</b>. (People who train to build muscle often aim for about 1.6 g per kg — for reference only.)</p>
+        <p class="muted-small">This is a rough estimate for lightly active adults. Children, pregnancy, heavy exercise or health conditions call for advice from a doctor or dietitian.</p>
+      </div>
+      </div>
 
-      <p class="disclaimer">⚠️ 营养数值是按常见食材估算的参考值，不是精确数据，不构成医疗或营养建议。详见「❓ 说明」里的免责声明。</p>
+      <p class="disclaimer" data-i18n="nutritionDisclaimer">⚠️ 营养数值是按常见食材估算的参考值，不是精确数据，不构成医疗或营养建议。详见「❓ 说明」里的免责声明。</p>
     </section>
   </main>
 
   <!-- 底部标签栏 -->
   <nav class="tab-bar">
-    <button class="tab active" data-page="family">👥 我的家庭</button>
-    <button class="tab" data-page="menu">📅 本周食谱</button>
-    <button class="tab" data-page="fridge">🏠 共享大冰箱</button>
-    <button class="tab" data-page="nutrition">📊 营养大盘</button>
+    <button class="tab active" data-page="family" data-i18n="tabFamily">👥 我的家庭</button>
+    <button class="tab" data-page="menu" data-i18n="tabMenu">📅 本周食谱</button>
+    <button class="tab" data-page="fridge" data-i18n="tabFridge">🏠 共享大冰箱</button>
+    <button class="tab" data-page="nutrition" data-i18n="tabNutrition">📊 营养大盘</button>
   </nav>
 
   <!-- 给某一顿加菜 -->
@@ -147,20 +157,21 @@
     <div class="modal-content">
       <h2 id="dish-title" class="modal-title"></h2>
       <div id="dish-options" class="who-options"></div>
-      <p class="or-text">—— 或者自己写一道菜 ——</p>
+      <p class="or-text" data-i18n="orWriteDish">—— 或者自己写一道菜 ——</p>
       <form id="custom-dish-form">
-        <input id="custom-dish-name" class="add-item-input full" placeholder="菜名，如：葱爆羊肉" maxlength="20" />
-        <input id="custom-dish-items" class="add-item-input full" placeholder="食材，如：羊肉 1斤，葱 1把" />
-        <button type="submit" class="big-button green">加入这道菜</button>
+        <input id="custom-dish-name" class="add-item-input full" data-i18n-ph="dishNamePh" placeholder="菜名，如：葱爆羊肉" maxlength="20" />
+        <input id="custom-dish-items" class="add-item-input full" data-i18n-ph="dishItemsPh" placeholder="食材，如：羊肉 1斤，葱 1把" />
+        <button type="submit" class="big-button green" data-i18n="addThisDish">加入这道菜</button>
       </form>
-      <button id="dish-cancel" class="text-button">取消</button>
+      <button id="dish-cancel" class="text-button" data-i18n="cancel">取消</button>
     </div>
   </div>
 
   <!-- 使用说明 -->
   <div id="help-modal" class="modal-mask" hidden>
     <div class="modal-content help-content">
-      <h2 class="modal-title">❓ 使用说明</h2>
+      <h2 class="modal-title" data-i18n="helpTitle">❓ 使用说明</h2>
+      <div data-lang-block="zh">
 
       <h3>👨‍👩‍👧 1. 全家加入同一个冰箱</h3>
       <p>第一个人点「创建我们家的冰箱」，起个名字。其他家人打开网址后，在欢迎窗里输入「我的家庭」页黄色卡片上的 <b>Family ID</b>（10 位字母和数字）加入，再选自己的称呼。家庭编号就像家里的钥匙，只发给家人。</p>
@@ -189,7 +200,37 @@
       <p>本 App 的保存天数、热量和蛋白质都是<b>参考值</b>：保存天数参考美国农业部 FoodKeeper 食品保存指南（取较短、较安全的天数），营养数值参考常见食物成分表。它们只供家庭日常参考，<b>不构成食品安全、医疗或营养方面的专业建议</b>。食物还能不能吃，请以<b>包装上的保质期</b>和食物的实际状态（气味、颜色、质地）为准，拿不准时宁可丢掉。有过敏、特殊疾病、孕期或婴幼儿饮食等情况，请咨询医生或营养师。</p>
 
       <p class="note-text">所有功能免费，不需要注册账号。</p>
-      <button id="help-close" class="big-button green">知道了</button>
+      </div>
+      <div data-lang-block="en">
+      <h3>👨‍👩‍👧 1. Join the same fridge</h3>
+      <p>The first person taps “Create our fridge” and gives it a name. Everyone else opens the website and, in the welcome window, enters the <b>Family ID</b> (10 letters/numbers) from the yellow card on the Family tab, then picks their name. The Family ID works like a house key — only share it with family.</p>
+
+      <h3>📱 2. Add it to your home screen</h3>
+      <p>iPhone: open it in Safari → tap Share → “Add to Home Screen”. Android: open it in Chrome → ⋮ → “Add to Home screen”. Don’t use private browsing. The first time you open it from the icon, if the welcome window appears again, enter your Family ID and tap your name.</p>
+
+      <h3>📅 3. Plan the week’s meals</h3>
+      <p>On the Meals tab, tap “＋ Add” for any breakfast, lunch or dinner. Pick a built-in dish or write your own name and ingredients (e.g. beef 2 lb, carrots 3). If the dish itself is what you buy, you can enter just an amount (e.g. dish “eggs”, ingredients “12”). Anything not in the fridge is <b>added to the shopping list automatically</b>; remove a dish and ingredients nobody needs are taken off again. Cooked rice is never added.</p>
+
+      <h3>🛒 4. Shopping</h3>
+      <p>Add items to the shopping list on the Family tab, with an amount (e.g. milk 1 gallon, beef 2 lb). <b>Tick each item as you buy it</b> — it goes straight into the fridge with a storage time worked out for that food. Ticked the wrong one? Tap “Undo” in the message.</p>
+      <p>Tap ✕ to delete an item. Items added by the meal plan won’t come back unless you plan a new dish that needs them.</p>
+      <p>Under “📏 Units”, choose <b>US</b> to have the meal plan use gallons for milk and pounds for meat and produce, or <b>Metric / China</b> for boxes and 斤.</p>
+
+      <h3>🧊 5. The fridge</h3>
+      <p>Items expiring soonest are on top; red means 2 days or less. Storage times are based on USDA FoodKeeper — <b>if the package has a date, go by the package</b>. Tap “⏱️ days left ✏️” to change a date. Meat and fish can be frozen with “❄️ Freeze” (frozen items have a blue background). Salt, sauces and oils go in the “🧂 Seasonings” section at the bottom; tap “Used up” when finished.</p>
+
+      <h3>🍽️ 6. Record what you eat</h3>
+      <p>In the fridge, tap the green “Eat” button and choose all, half or an amount. Anything left stays in the fridge (orange background) and only what you ate counts toward nutrition. Use “🗑 Delete” for things bought by mistake or thrown away, and “✏️ Amount” to correct quantities (e.g. 1 box, 6 bottles).</p>
+
+      <h3>📊 7. Nutrition</h3>
+      <p>Whoever taps “Eat” on their phone gets the credit. Enter your weight with “⚖️ Weight” on the Family tab and your daily reference is based on it: calories ≈ weight (kg) × 30, protein ≈ weight (kg) × 1 g (typical adult). You can enter kg or lb. Tap ✕ to delete a wrong record. All numbers are estimates.</p>
+
+      <h3>⚠️ Disclaimer</h3>
+      <p>Storage times, calories and protein in this app are <b>estimates</b>: storage times are based on the USDA FoodKeeper food storage guide (using the shorter, safer end of each range) and nutrition figures on common food composition tables. They are for everyday household reference only and <b>are not professional food-safety, medical or nutrition advice</b>. Whether food is still safe to eat depends on the <b>date on the package</b> and the food’s actual condition (smell, colour, texture) — when in doubt, throw it out. For allergies, medical conditions, pregnancy or infant feeding, consult a doctor or dietitian.</p>
+
+      <p class="note-text">Everything is free. No account needed.</p>
+      </div>
+      <button id="help-close" class="big-button green" data-i18n="gotIt">知道了</button>
     </div>
   </div>
 
@@ -199,57 +240,57 @@
       <h2 id="eat-title" class="modal-title"></h2>
       <p id="eat-left" class="recipe-inspiration"></p>
       <div id="eat-quick" class="who-options"></div>
-      <p class="or-text">—— 或者自己填 ——</p>
+      <p class="or-text" data-i18n="orFillIn">—— 或者自己填 ——</p>
       <form id="eat-form" class="add-item-bar">
-        <input id="eat-amount" class="add-item-input" type="number" inputmode="decimal" min="0" step="any" placeholder="吃了多少" />
+        <input id="eat-amount" class="add-item-input" type="number" inputmode="decimal" min="0" step="any" data-i18n-ph="howMuch" placeholder="吃了多少" />
         <span id="eat-unit" class="unit-label"></span>
-        <button type="submit" class="add-item-button">确定</button>
+        <button type="submit" class="add-item-button" data-i18n="ok">确定</button>
       </form>
-      <button id="eat-cancel" class="text-button">取消</button>
+      <button id="eat-cancel" class="text-button" data-i18n="cancel">取消</button>
     </div>
   </div>
 
   <!-- 邀请家人 -->
   <div id="invite-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">✉️ 邀请家人加入</h2>
-      <p class="recipe-inspiration">把下面的邀请链接发给家人，他们点开就能进入同一个冰箱。</p>
+      <h2 class="modal-title" data-i18n="inviteTitle">✉️ 邀请家人加入</h2>
+      <p class="recipe-inspiration" data-i18n="inviteDesc"></p>
       <p id="invite-link" class="invite-link"></p>
-      <button id="invite-copy" class="big-button green">📋 复制邀请（发微信用这个）</button>
-      <button id="invite-share" class="big-button blue">📤 用其他方式分享</button>
-      <button id="invite-close" class="text-button">关闭</button>
+      <button id="invite-copy" class="big-button green" data-i18n="inviteCopy">📋 复制邀请（发微信用这个）</button>
+      <button id="invite-share" class="big-button blue" data-i18n="inviteShare">📤 用其他方式分享</button>
+      <button id="invite-close" class="text-button" data-i18n="close">关闭</button>
     </div>
   </div>
 
   <!-- 这台设备还没加入家庭：加入已有家庭，或创建新家庭 -->
   <div id="family-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">🧊 欢迎来到家庭大冰箱</h2>
-      <p class="recipe-inspiration">家里已经有人在用了？输入家人「我的家庭」页面上的 Family ID，就能进入同一个冰箱。</p>
+      <h2 class="modal-title" data-i18n="welcomeTitle">🧊 欢迎来到家庭大冰箱</h2>
+      <p class="recipe-inspiration" data-i18n="joinDesc">家里已经有人在用了？输入家人「我的家庭」页面上的 Family ID，就能进入同一个冰箱。</p>
       <form id="join-form" class="add-item-bar">
-        <input id="join-input" class="add-item-input" placeholder="输入家庭编号，10 位字母和数字" maxlength="16" autocapitalize="characters" autocomplete="off" />
-        <button type="submit" class="add-item-button">加入</button>
+        <input id="join-input" class="add-item-input" data-i18n-ph="joinPh" placeholder="输入家庭编号，10 位字母和数字" maxlength="16" autocapitalize="characters" autocomplete="off" />
+        <button type="submit" class="add-item-button" data-i18n="join">加入</button>
       </form>
-      <p class="or-text">—— 或者 ——</p>
-      <input id="new-family-name" class="add-item-input full" placeholder="给你们家的冰箱起个名字，如：李家大冰箱" maxlength="12" />
-      <button id="create-family" class="big-button green">🏠 我是第一个，创建我们家的冰箱</button>
+      <p class="or-text" data-i18n="or">—— 或者 ——</p>
+      <input id="new-family-name" class="add-item-input full" data-i18n-ph="newFamilyPh" placeholder="给你们家的冰箱起个名字，如：李家大冰箱" maxlength="12" />
+      <button id="create-family" class="big-button green" data-i18n="createFamily">🏠 我是第一个，创建我们家的冰箱</button>
     </div>
   </div>
 
   <!-- 第一次进入家庭时选称呼 -->
   <div id="who-modal" class="modal-mask" hidden>
     <div class="modal-content">
-      <h2 class="modal-title">👋 欢迎加入<span class="family-name">家庭大冰箱</span></h2>
+      <h2 class="modal-title"><span data-i18n="joinWelcome">👋 欢迎加入</span><span class="family-name">家庭大冰箱</span></h2>
       <div id="claim-section" hidden>
-        <p class="recipe-inspiration">你以前在这个家庭里用过吗？点自己的名字认回来：</p>
+        <p class="recipe-inspiration" data-i18n="claimDesc">你以前在这个家庭里用过吗？点自己的名字认回来：</p>
         <div id="claim-options" class="who-options"></div>
-        <p class="or-text">—— 新成员请选称呼 ——</p>
+        <p class="or-text" data-i18n="newMember">—— 新成员请选称呼 ——</p>
       </div>
-      <p class="recipe-inspiration">你是家里的谁？选一个称呼，家人就能认出你。</p>
+      <p class="recipe-inspiration" data-i18n="whoDesc">你是家里的谁？选一个称呼，家人就能认出你。</p>
       <div id="who-options" class="who-options"></div>
       <form id="who-form" class="add-item-bar">
-        <input id="who-input" class="add-item-input" placeholder="或者自己写，比如：小姨" maxlength="8" />
-        <button type="submit" class="add-item-button">确定</button>
+        <input id="who-input" class="add-item-input" data-i18n-ph="whoPh" placeholder="或者自己写，比如：小姨" maxlength="8" />
+        <button type="submit" class="add-item-button" data-i18n="ok">确定</button>
       </form>
     </div>
   </div>
@@ -262,11 +303,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202610141750';</script>
-  <script src="firebase-config.js?v=202610141750"></script>
-  <script src="foods.js?v=202610141750"></script>
-  <script src="recipes.js?v=202610141750"></script>
-  <script src="store.js?v=202610141750"></script>
-  <script src="app.js?v=202610141750"></script>
+  <script>window.APP_VERSION = '?v=202610151730';</script>
+  <script src="firebase-config.js?v=202610151730"></script>
+  <script src="i18n.js?v=202610151730"></script>
+  <script src="foods.js?v=202610151730"></script>
+  <script src="recipes.js?v=202610151730"></script>
+  <script src="store.js?v=202610151730"></script>
+  <script src="app.js?v=202610151730"></script>
 </body>
 </html>
