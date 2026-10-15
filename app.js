@@ -71,8 +71,10 @@
 
   // 家庭名：每家自己起，比如"李家大冰箱"；还没起名时显示"家庭大冰箱"
   const DEFAULT_FAMILY_NAME = '家庭大冰箱'; // 没起名时显示 t('defaultFamilyName')
+  // 家庭名：中文界面用 familyName；英文界面优先用英文名 familyNameEn，没起英文名就用中文名
   function familyName() {
     const settings = Store.get('settings') || {};
+    if (I18N.lang === 'en' && settings.familyNameEn) return settings.familyNameEn;
     return settings.familyName || t('defaultFamilyName');
   }
 
@@ -1138,9 +1140,12 @@
   });
 
   $('rename-family').addEventListener('click', () => {
-    const name = (prompt(t('renameFamilyPrompt'), familyName()) || '').trim().slice(0, 20);
-    if (!name || name === familyName()) return;
-    Store.set('settings', Object.assign({}, Store.get('settings'), { familyName: name }));
+    // 英文界面改的是英文名，中文界面改的是中文名
+    const key = I18N.lang === 'en' ? 'familyNameEn' : 'familyName';
+    const current = (Store.get('settings') || {})[key] || '';
+    const name = (prompt(t('renameFamilyPrompt'), current || familyName()) || '').trim().slice(0, 30);
+    if (!name || name === current) return;
+    Store.set('settings', Object.assign({}, Store.get('settings'), { [key]: name }));
     updateManifest();
     showToast(t('familyRenamed', { name }));
   });
@@ -1260,7 +1265,10 @@
         localStorage.removeItem('fridge.pendingFamilyName');
       } catch (e) {}
       if (ok && pendingName && !(Store.get('settings') || {}).familyName) {
-        Store.set('settings', Object.assign({}, Store.get('settings'), { familyName: pendingName }));
+        // 在英文界面创建的家庭，名字同时当作英文名
+        const names = { familyName: pendingName };
+        if (I18N.lang === 'en') names.familyNameEn = pendingName;
+        Store.set('settings', Object.assign({}, Store.get('settings'), names));
       }
       updateManifest();
       syncState = ok ? 'synced' : 'syncFailed';

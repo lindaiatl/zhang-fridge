@@ -180,7 +180,7 @@
     newFamilyPh: { zh: '给你们家的冰箱起个名字，如：李家大冰箱', en: 'Name your fridge, e.g. The Smiths’ Fridge' },
     createFamily: { zh: '🏠 我是第一个，创建我们家的冰箱', en: '🏠 I’m the first — create our fridge' },
     confirmCreate: { zh: '确定要创建「{name}」吗？\n如果家人已经在用了，请改为输入他们的家庭编号加入。', en: 'Create “{name}”?\nIf your family already uses the app, enter their Family ID instead.' },
-    renameFamilyPrompt: { zh: '给你们家的冰箱起个名字：', en: 'Name your family fridge:' },
+    renameFamilyPrompt: { zh: '给你们家的冰箱起个名字（英文界面可以另起英文名）：', en: 'English name for your family fridge (Chinese screens keep the Chinese name):' },
     familyRenamed: { zh: '已改名为「{name}」', en: 'Renamed to “{name}”' },
     switchPrompt: { zh: '输入要切换到的家庭编号（在家人「我的家庭」黄色卡片上）：', en: 'Enter the Family ID to switch to (on the yellow card in their Family tab):' },
     idTooShort: { zh: '家庭编号是 10 位字母和数字，请再核对一下', en: 'A Family ID has 10 letters/numbers — please check it' },
