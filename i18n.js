@@ -35,6 +35,7 @@
     fridgeEmpty: { zh: '冰箱空空的。去「我的家庭」的购买清单里勾选买到的食材，就会放进来。', en: 'The fridge is empty. Tick items on the shopping list (Family tab) and they’ll show up here.' },
     expiredDays: { zh: '⚠️ 已过期 {n} 天', en: '⚠️ Expired {n}d ago' },
     daysLeft: { zh: '⏱️ 剩 {n} 天', en: '⏱️ {n} days left' },
+    dayLeft: { zh: '⏱️ 剩 1 天', en: '⏱️ 1 day left' },
     editDateTitle: { zh: '点一下修改到期日', en: 'Tap to change the date' },
     chilled: { zh: '🧊 冷藏', en: '🧊 Fridge' },
     frozen: { zh: '❄️ 冷冻', en: '❄️ Freezer' },

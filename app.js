@@ -2,6 +2,13 @@
 // 冰箱（吃多少记多少、冷藏/冷冻）、一周食谱、家庭（购买清单、买到入库）、营养大盘
 (function () {
   const { parseItem, nutritionFor, shelfDays, canFreeze, isSeasoning, toGrams, lookup, formatQty, todayString } = window.Foods;
+  // 数量 + 单位，按当前语言显示（英文界面里 2盒 → 2 boxes，1斤 → 500 g 或 1.1 lb）
+  const amt = (qty, unit) => Foods.amountText(qty, unit, I18N.lang, region());
+  // 购买清单上的文字：能拆出数量的，单位按语言显示
+  function itemText(text) {
+    const p = parseItem(text);
+    return /\d/.test(text) ? `${p.name} ${amt(p.qty, p.unit)}` : text;
+  }
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18N.t(key, vars);
   const SEP = () => t('sep');
@@ -184,7 +191,7 @@
     let cls = 'green';
     if (days <= 2) cls = 'red';
     else if (days <= 5) cls = 'orange';
-    const text = days < 0 ? t('expiredDays', { n: -days }) : t('daysLeft', { n: days });
+    const text = days < 0 ? t('expiredDays', { n: -days }) : (days === 1 ? t('dayLeft') : t('daysLeft', { n: days }));
     return { days, cls, text };
   }
 
@@ -213,7 +220,7 @@
             return `
           <div class="food-card ${frozen ? 'frozen-card' : ''} ${partial ? 'partial-card' : ''}">
             <div class="food-info">
-              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${partial ? t('left') : ''}${formatQty(food.qty)}${escapeHtml(food.unit)}${partial ? t('leftSuffix') : ''}</span>${partial ? ` <span class="partial-tag">${t('partlyEaten')}</span>` : ''}</div>
+              <div class="food-name">${escapeHtml(food.name)} <span class="food-qty">${partial ? t('left') : ''}${escapeHtml(amt(food.qty, food.unit))}${partial ? t('leftSuffix') : ''}</span>${partial ? ` <span class="partial-tag">${t('partlyEaten')}</span>` : ''}</div>
               <div class="food-details">
                 <span class="storage-tag ${frozen ? 'frozen' : ''}">${frozen ? t('frozen') : t('chilled')}</span>
                 <label class="remaining-days ${remain.cls}" title="${t('editDateTitle')}">
@@ -235,7 +242,7 @@
       .map(
         (food) => `
           <div class="seasoning-row">
-            <span class="seasoning-name">${escapeHtml(food.name)} <span class="food-qty">${formatQty(food.qty)}${escapeHtml(food.unit)}</span></span>
+            <span class="seasoning-name">${escapeHtml(food.name)} <span class="food-qty">${escapeHtml(amt(food.qty, food.unit))}</span></span>
             <button class="small-button" data-action="qty" data-id="${escapeHtml(food.id)}">✏️</button>
             <button class="small-button gray" data-action="usedup" data-id="${escapeHtml(food.id)}">${t('usedUp')}</button>
           </div>`
@@ -263,7 +270,7 @@
         f.id === id ? Object.assign({}, f, { qty: parsed.qty, unit: parsed.unit, initialQty: parsed.qty }) : f
       )
     );
-    showToast(t('qtyChanged', { qty: `${formatQty(parsed.qty)}${parsed.unit}` }));
+    showToast(t('qtyChanged', { qty: amt(parsed.qty, parsed.unit) }));
   }
 
   // 删除：买错了、扔掉了、调料用完了（不计入营养）
@@ -316,15 +323,15 @@
     if (!food) return;
     eatingId = id;
     $('eat-title').textContent = `🍽️ ${food.name}`;
-    $('eat-left').textContent = t('eatLeft', { qty: `${formatQty(food.qty)}${food.unit}` });
-    $('eat-unit').textContent = food.unit;
+    $('eat-left').textContent = t('eatLeft', { qty: amt(food.qty, food.unit) });
+    $('eat-unit').textContent = amt(1, food.unit).replace(/^1\s*/, '');
     $('eat-amount').value = '';
     // 快捷按钮：全部、一半，数量大于 1 时再给一个"1 个单位"
     const quick = [
       { label: t('eatAll'), qty: food.qty },
       { label: t('eatHalf'), qty: food.qty / 2 },
     ];
-    if (food.qty > 1) quick.push({ label: t('eatOne', { unit: food.unit }), qty: 1 });
+    if (food.qty > 1) quick.push({ label: t('eatOne', { unit: amt(1, food.unit).replace(/^1\s*/, '') || 'pc' }), qty: 1 });
     $('eat-quick').innerHTML = quick
       .map((q) => `<button class="who-option" data-qty="${q.qty}">${escapeHtml(q.label)}</button>`)
       .join('');
@@ -365,8 +372,8 @@
     );
     $('eat-modal').hidden = true;
 
-    const amountText = `${formatQty(eaten)}${food.unit}`;
-    const leftText = left > 0 ? t('eatLeftAfter', { qty: `${formatQty(left)}${food.unit}` }) : t('eatAllGone');
+    const amountText = amt(eaten, food.unit);
+    const leftText = left > 0 ? t('eatLeftAfter', { qty: amt(left, food.unit) }) : t('eatAllGone');
     showToast(
       record.known
         ? t('eatToast', { amount: amountText, kcal: record.kcal, protein: record.protein, left: leftText })
@@ -588,8 +595,12 @@
 
   // 常用单位：中国（盒、斤）或美国（加仑、磅）
   function region() {
-    return (Store.get('settings') || {}).region === 'US' ? 'US' : 'CN';
+    // 家里设过就用设好的；没设过的，英文界面默认美国单位，中文界面默认中国单位
+    const r = (Store.get('settings') || {}).region;
+    if (r === 'US' || r === 'CN') return r;
+    return I18N.lang === 'en' ? 'US' : 'CN';
   }
+
   const LIQUID_KEYS = ['牛奶', '豆浆', '果汁'];
   function regionUnit(name, unit) {
     if (region() !== 'US') return unit;
@@ -727,7 +738,7 @@
             <label class="shopping-item">
               <input type="checkbox" data-id="${escapeHtml(item.id)}" ${item.bought ? 'checked' : ''} />
               <span class="shopping-item-text ${item.bought ? 'bought-item' : ''}">
-                ${escapeHtml(item.name)}  [${escapeHtml(showRequester(item.requester))}]
+                ${escapeHtml(itemText(item.name))}  [${escapeHtml(showRequester(item.requester))}]
               </span>
             </label>
             <button class="record-x" data-delete-item="${escapeHtml(item.id)}" aria-label="${t('delete')}">✕</button>
@@ -1008,7 +1019,7 @@
         (r) => `
           <div class="row">
             <button class="record-x" data-record="${escapeHtml(r.id)}" aria-label="${t('delete')}">✕</button>
-            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${formatQty(r.qty)}${escapeHtml(r.unit)}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
+            <span class="row-name">${escapeHtml(r.name)}${r.qty != null ? ` <span class="food-qty">${escapeHtml(amt(r.qty, r.unit))}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
             ${
               r.known
                 ? `<span class="row-numbers">${r.kcal} ${t('kcal')} · ${r.protein} ${t('gram')}</span>`
