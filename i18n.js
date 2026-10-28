@@ -93,6 +93,7 @@
     writeDishName: { zh: '请写菜名', en: 'Please enter a dish name' },
     dishAdded: { zh: '已加入：{name}\n冰箱里没有的已放进购买清单：{items}', en: 'Added: {name}\nAdded to shopping list: {items}' },
     dishAddedAllHave: { zh: '已加入：{name}（需要的食材冰箱里或购买清单上已经有了）', en: 'Added: {name} (ingredients are already in the fridge or on the list)' },
+    dishPastDay: { zh: '已加入：{name}\n这一天已经过去了，所以不会加进购买清单。要买菜请排在今天或以后的日子。', en: 'Added: {name}\nThat day has already passed, so nothing was added to the shopping list. Plan it for today or later to shop for it.' },
     dishNoItems: { zh: '已加入：{name}\n没有写食材，所以没加进购买清单。需要的话请在"食材"一栏写上，如：带鱼 1条', en: 'Added: {name}\nNo ingredients entered, so nothing was added to the shopping list. Add ingredients (e.g. fish 1) if you need them.' },
     dishRemoved: { zh: '已删除：{name}\n购买清单已更新', en: 'Removed: {name}\nShopping list updated' },
     dishRemovedFrom: { zh: '，去掉：{items}', en: ' — removed: {items}' },

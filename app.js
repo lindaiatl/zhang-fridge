@@ -445,9 +445,10 @@
       // - 都不是（比如"饼"）→ 不知道要买什么，保持没有食材
       const recipe = Recipes.find(dish.name);
       if (recipe) return Object.assign({}, dish, { items: recipe.items });
-      const food = lookup(dish.name);
-      if (food.known || FoodNames.isKnown(dish.name)) {
-        return Object.assign({}, dish, { items: [{ name: dish.name, qty: 1, unit: food.unit }] });
+      // 菜名里可能带了数量，比如"带鱼 2条""黄鱼 1条"
+      const p = parseItem(dish.name);
+      if (lookup(p.name).known || FoodNames.isKnown(p.name)) {
+        return Object.assign({}, dish, { items: [{ name: p.name, qty: p.qty, unit: p.unit }] });
       }
       return dish;
     }
@@ -583,9 +584,12 @@
     setDishes(date, meal, (dishes) => dishes.concat(dish));
     $('dish-modal').hidden = true;
     // 过去的日子不用再买菜
-    const added = date >= todayString() ? syncShoppingWithMenu().added : [];
+    const past = date < todayString();
+    const added = past ? [] : syncShoppingWithMenu().added;
     showToast(
-      added.length
+      past
+        ? t('dishPastDay', { name: dishLabel(dish.name) })
+        : added.length
         ? t('dishAdded', { name: dishLabel(dish.name), items: added.map(itemText).join(SEP()) })
         : (dish.items || []).length === 0
           ? t('dishNoItems', { name: dishLabel(dish.name) })
