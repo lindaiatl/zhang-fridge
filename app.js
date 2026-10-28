@@ -438,7 +438,19 @@
     return /^[\d.\s]*$/.test(name) || /^\d+(\.\d+)?\s*\S{1,3}$/.test(name) && parseItem(`x ${name}`).name === 'x';
   }
   function fixDishItems(dish) {
-    if (!dish.items || dish.items.length === 0) return dish;
+    if (!dish.items || dish.items.length === 0) {
+      // 自己写菜时没填食材：
+      // - 和内置菜同名（比如"红烧肉"）→ 用菜谱里的食材
+      // - 菜名本身就是一样食材（比如"带鱼""馒头""牛排"）→ 买 1 份它
+      // - 都不是（比如"饼"）→ 不知道要买什么，保持没有食材
+      const recipe = Recipes.find(dish.name);
+      if (recipe) return Object.assign({}, dish, { items: recipe.items });
+      const food = lookup(dish.name);
+      if (food.known || FoodNames.isKnown(dish.name)) {
+        return Object.assign({}, dish, { items: [{ name: dish.name, qty: 1, unit: food.unit }] });
+      }
+      return dish;
+    }
     let changed = false;
     const items = dish.items.map((item) => {
       if (!isQuantityOnly(String(item.name))) return item;
@@ -575,7 +587,9 @@
     showToast(
       added.length
         ? t('dishAdded', { name: dishLabel(dish.name), items: added.map(itemText).join(SEP()) })
-        : t('dishAddedAllHave', { name: dishLabel(dish.name) }),
+        : (dish.items || []).length === 0
+          ? t('dishNoItems', { name: dishLabel(dish.name) })
+          : t('dishAddedAllHave', { name: dishLabel(dish.name) }),
       3000
     );
   }

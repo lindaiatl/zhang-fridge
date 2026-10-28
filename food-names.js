@@ -65,5 +65,10 @@
     return raw;
   }
 
-  window.FoodNames = { englishName };
+  // 名字（去掉表情符号）是不是对照表里认得的食材
+  function isKnown(name) {
+    return !!ZH_EN[String(name || '').replace(/[^\u4e00-\u9fa5]/g, '')];
+  }
+
+  window.FoodNames = { englishName, isKnown };
 })();
