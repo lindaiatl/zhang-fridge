@@ -115,6 +115,23 @@
     ? (firebase.initializeApp(cloudConfig), (db = firebase.firestore()), firebase.auth().signInAnonymously())
     : null;
 
+  // 使用统计：每个家庭每天第一次打开时，在云端 families/家庭ID/data/activity 记下日期
+  // 只记日期，不记是谁、不记内容；同一台设备一天只写一次
+  // 在 Firebase 控制台用 Collection group「data」+ 筛选 lastActive >= 某天，就能数出最近有几个家庭在用
+  function recordActivity() {
+    try {
+      const today = daysFromToday(0);
+      const localKey = `fridge.${familyId}.activityDate`;
+      if (read(localKey, null) === today) return;
+      db.collection('families').doc(familyId).collection('data').doc('activity')
+        .set({ lastActive: today, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })
+        .then(() => write(localKey, today))
+        .catch((err) => console.error('记录使用统计失败', err));
+    } catch (err) {
+      // 统计失败不影响正常使用
+    }
+  }
+
   if (isCloud && !familyId) {
     // 这台设备还没加入任何家庭：先不连数据，等用户选择
     readyResolve('needs-family');
@@ -127,6 +144,7 @@
 
     signIn
       .then(() => {
+        recordActivity();
         let pending = KEYS.length;
         let coreFailed = false;
         KEYS.forEach((key) => {
