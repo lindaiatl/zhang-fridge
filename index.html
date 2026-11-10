@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="大冰箱" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <!-- ?v= 是版本号：每次更新时改一下，手机就会下载新文件，而不是用缓存里的旧文件 -->
-  <link rel="stylesheet" href="style.css?v=202611042026" />
+  <link rel="stylesheet" href="style.css?v=202611101620" />
 </head>
 <body>
   <header class="top-bar">
@@ -157,11 +157,11 @@
     <div class="modal-content">
       <h2 id="dish-title" class="modal-title"></h2>
       <div id="dish-options" class="who-options"></div>
-      <p class="or-text" data-i18n="orWriteDish">—— 或者自己写一道菜 ——</p>
+      <p id="dish-or" class="or-text" data-i18n="orWriteDish">—— 或者自己写一道菜 ——</p>
       <form id="custom-dish-form">
         <input id="custom-dish-name" class="add-item-input full" data-i18n-ph="dishNamePh" placeholder="菜名，如：葱爆羊肉" maxlength="20" />
         <input id="custom-dish-items" class="add-item-input full" data-i18n-ph="dishItemsPh" placeholder="食材，如：羊肉 1斤，葱 1把" />
-        <button type="submit" class="big-button green" data-i18n="addThisDish">加入这道菜</button>
+        <button id="dish-submit" type="submit" class="big-button green" data-i18n="addThisDish">加入这道菜</button>
       </form>
       <button id="dish-cancel" class="text-button" data-i18n="cancel">取消</button>
     </div>
@@ -303,14 +303,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <!-- 当前版本号：和下面文件后面的 ?v= 一致；发布新版时一起改，并同步写进 version.json -->
-  <script>window.APP_VERSION = '?v=202611042026';</script>
-  <script src="firebase-config.js?v=202611042026"></script>
-  <script src="i18n.js?v=202611042026"></script>
-  <script src="foods.js?v=202611042026"></script>
-  <script src="food-names.js?v=202611042026"></script>
-  <script src="recipes.js?v=202611042026"></script>
-  <script src="store.js?v=202611042026"></script>
-  <script src="app.js?v=202611042026"></script>
+  <script>window.APP_VERSION = '?v=202611101620';</script>
+  <script src="firebase-config.js?v=202611101620"></script>
+  <script src="i18n.js?v=202611101620"></script>
+  <script src="foods.js?v=202611101620"></script>
+  <script src="food-names.js?v=202611101620"></script>
+  <script src="recipes.js?v=202611101620"></script>
+  <script src="store.js?v=202611101620"></script>
+  <script src="app.js?v=202611101620"></script>
        <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "78c541df17a44950acaffdf5ff48d37b"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>

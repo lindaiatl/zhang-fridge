@@ -1066,3 +1066,58 @@ body[data-lang="en"] [data-lang-block="zh"] {
   font-size: 13px;
   color: #666;
 }
+
+/* 购买清单每行的 ✏️ 改数量 */
+.shopping-row .item-edit {
+  flex-shrink: 0;
+  margin: 0 0 0 6px;
+}
+
+/* 食谱：点菜名可以修改 */
+.chip-name {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 14px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.dish-chip.eaten {
+  background: #f1f1f1;
+  color: #888;
+}
+
+/* 复制到明天 */
+.copy-day {
+  float: right;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #666;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+/* 一顿饭吃完了 */
+.meal-ate {
+  border: 1px solid #81c784;
+  background: #fff;
+  color: #2e7d32;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+.meal-done {
+  color: #888;
+  font-size: 13px;
+  padding: 5px 2px;
+}
+
+/* 改菜时隐藏"选内置菜"那一块 */
+#dish-options[hidden],
+#dish-or[hidden] {
+  display: none;
+}

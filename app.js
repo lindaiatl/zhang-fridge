@@ -494,34 +494,46 @@
         const d = new Date(date + 'T00:00:00');
         const day = plan[date] || {};
         const rows = MEALS.map((meal) => {
-          const chips = (day[meal] || [])
+          const dishes = day[meal] || [];
+          // 点菜名可以修改；已经吃完的菜打个勾
+          const chips = dishes
             .map(
               (dish, i) =>
-                `<span class="dish-chip">${escapeHtml(dishLabel(dish.name))}<button class="chip-x" data-action="remove" data-date="${date}" data-meal="${meal}" data-index="${i}" aria-label="${t('delete')}">✕</button></span>`
+                `<span class="dish-chip ${dish.eaten ? 'eaten' : ''}"><button class="chip-name" data-action="edit" data-date="${date}" data-meal="${meal}" data-index="${i}" title="${t('editDishHint')}">${dish.eaten ? '✓ ' : ''}${escapeHtml(dishLabel(dish.name))}</button><button class="chip-x" data-action="remove" data-date="${date}" data-meal="${meal}" data-index="${i}" aria-label="${t('delete')}">✕</button></span>`
             )
             .join('');
+          // 今天和以前的饭：可以点"吃完了"，按菜谱从冰箱里扣掉食材
+          let ateButton = '';
+          if (dishes.length && date <= today) {
+            ateButton = dishes.every((dish) => dish.eaten)
+              ? `<span class="meal-done">${t('mealDone')}</span>`
+              : `<button class="meal-ate" data-action="ate" data-date="${date}" data-meal="${meal}">${t('mealAteBtn')}</button>`;
+          }
           return `
             <div class="meal-row">
               <span class="meal-label">${mealName(meal)}</span>
               <div class="meal-dishes">
                 ${chips}
                 <button class="add-dish" data-action="add" data-date="${date}" data-meal="${meal}">${t('addDish')}</button>
+                ${ateButton}
               </div>
             </div>`;
         }).join('');
+        const hasDishes = MEALS.some((meal) => (day[meal] || []).length);
         return `
           <div class="card day-card ${date === today ? 'today' : ''} ${date < today ? 'past' : ''}">
-            <div class="day-title">${weekdayName(d.getDay())} <span class="day-date">${date.slice(5)}</span>${date === today ? ` <span class="me-tag">${t('today')}</span>` : ''}</div>
+            <div class="day-title">${weekdayName(d.getDay())} <span class="day-date">${date.slice(5)}</span>${date === today ? ` <span class="me-tag">${t('today')}</span>` : ''}${hasDishes ? `<button class="copy-day" data-action="copy" data-date="${date}">${t('copyToNext')}</button>` : ''}</div>
             ${rows}
           </div>`;
       })
       .join('');
   }
 
-  document.querySelectorAll('.week-button').forEach((button) => {
+  // 只管"本周 / 下周"两个按钮（单位按钮也用了 week-button 的样式，不能算进来）
+  document.querySelectorAll('.week-button[data-week]').forEach((button) => {
     button.addEventListener('click', () => {
       weekOffset = parseInt(button.dataset.week, 10);
-      document.querySelectorAll('.week-button').forEach((b) => b.classList.toggle('active', b === button));
+      document.querySelectorAll('.week-button[data-week]').forEach((b) => b.classList.toggle('active', b === button));
       renderMenu();
     });
   });
@@ -559,10 +571,247 @@
       }
     }
     if (button.dataset.action === 'add') openDishModal(date, meal);
+    if (button.dataset.action === 'edit') openEditDish(date, meal, parseInt(button.dataset.index, 10));
+    if (button.dataset.action === 'copy') copyDayToNext(date);
+    if (button.dataset.action === 'ate') eatMeal(date, meal);
   });
+
+  // 购买清单变化的提示：去掉了哪些、现在需要哪些
+  function shoppingChangeText({ removed, added }) {
+    return (
+      (removed.length ? t('dishRemovedFrom', { items: removed.map(itemText).join(SEP()) }) : '') +
+      (added.length ? t('dishRemovedNeed', { items: added.map(itemText).join(SEP()) }) : '')
+    );
+  }
+
+  // ---------- ✏️ 直接修改一道菜（不用删掉再重写） ----------
+  let editingDish = null; // { date, meal, index, nameText, itemsText }
+
+  // 食材写成一行文字，比如"猪肉 1斤，葱 1把"（英文界面："pork 1.1 lb, green onions 1 bunch"）
+  function itemsToText(items) {
+    return (items || [])
+      .map((i) => `${foodLabel(i.name)} ${I18N.lang === 'en' ? amt(i.qty, i.unit) : `${formatQty(i.qty)}${i.unit}`}`)
+      .join(I18N.lang === 'en' ? ', ' : '，');
+  }
+
+  // 加菜窗口在"加菜"和"改菜"两种样子之间切换
+  function setDishModalMode(editing) {
+    $('dish-options').hidden = editing;
+    $('dish-or').hidden = editing;
+    $('dish-submit').textContent = editing ? t('saveDish') : t('addThisDish');
+  }
+
+  function openEditDish(date, meal, index) {
+    const dish = ((getPlan()[date] || {})[meal] || [])[index];
+    if (!dish) return;
+    const nameText = dishLabel(dish.name);
+    const itemsText = itemsToText(fixDishItems(dish).items);
+    editingDish = { date, meal, index, nameText, itemsText };
+    const d = new Date(date + 'T00:00:00');
+    $('dish-title').textContent = t('editDishTitle', { day: weekdayName(d.getDay()), meal: mealName(meal) });
+    setDishModalMode(true);
+    $('custom-dish-name').value = nameText;
+    $('custom-dish-items').value = itemsText;
+    $('dish-modal').hidden = false;
+  }
+
+  function saveEditedDish() {
+    const { date, meal, index, nameText, itemsText } = editingDish;
+    const dish = ((getPlan()[date] || {})[meal] || [])[index];
+    $('dish-modal').hidden = true;
+    editingDish = null;
+    if (!dish) return;
+    const nameInput = $('custom-dish-name').value.trim();
+    const itemsInput = $('custom-dish-items').value.trim();
+    if (!nameInput) {
+      showToast(t('writeDishName'));
+      return;
+    }
+    // 没动过的部分保留原来的数据（内置菜的中文名和食材不会因为英文界面而被改掉）
+    const updated = Object.assign({}, dish, {
+      name: nameInput === nameText ? dish.name : nameInput,
+      items: itemsInput === itemsText ? fixDishItems(dish).items : Recipes.parseIngredients(itemsInput),
+    });
+    const fixed = fixDishItems(updated);
+    setDishes(date, meal, (dishes) => dishes.map((x, i) => (i === index ? fixed : x)));
+    const changes = date < todayString() ? { added: [], removed: [] } : syncShoppingWithMenu();
+    showToast(t('dishSaved', { name: dishLabel(fixed.name) }) + shoppingChangeText(changes), 3000);
+  }
+
+  // ---------- 📋 把一天的食谱复制到第二天（加在第二天已有的菜后面） ----------
+  function copyDayToNext(date) {
+    const next = addDays(date, 1);
+    const plan = Object.assign({}, getPlan());
+    const before = plan[next];
+    const day = Object.assign({}, before || {});
+    let count = 0;
+    MEALS.forEach((meal) => {
+      // 复制出来的是还没吃的新菜
+      const copies = ((plan[date] || {})[meal] || []).map((dish) => {
+        const c = Object.assign({}, dish);
+        delete c.eaten;
+        return c;
+      });
+      if (copies.length) {
+        day[meal] = (day[meal] || []).concat(copies);
+        count += copies.length;
+      }
+    });
+    if (!count) return;
+    plan[next] = day;
+    Store.set('mealPlan', plan);
+    const changes = next < todayString() ? { added: [], removed: [] } : syncShoppingWithMenu();
+    const d = new Date(next + 'T00:00:00');
+    const dayText = `${weekdayName(d.getDay())} ${next.slice(5)}`;
+    showToastWithAction(t('dayCopied', { day: dayText, n: count }) + shoppingChangeText(changes), t('undo'), () => {
+      const restored = Object.assign({}, getPlan());
+      if (before) restored[next] = before;
+      else delete restored[next];
+      Store.set('mealPlan', restored);
+      syncShoppingWithMenu();
+      showToast(t('copyUndone'));
+    });
+  }
+
+  // ---------- 🍽️ 一顿饭吃完了：按菜谱用量从冰箱里扣掉食材 ----------
+  // 一个单位能换算成多少克：重量单位（斤、磅…），或者这种食材自己的单位（鸡蛋的"个"）；
+  // 其他单位（比如鸡蛋的"盒"）没法准确换算，返回 0
+  function gramsPerUnit(name, unit) {
+    const isWeight = toGrams('', 1, unit) > 0;
+    if (!isWeight && unit !== lookup(name).unit) return 0;
+    return toGrams(name, 1, unit);
+  }
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  function eatMeal(date, meal) {
+    const dishes = (getPlan()[date] || {})[meal] || [];
+    const eatIndexes = dishes.map((dish, i) => (dish.eaten ? -1 : i)).filter((i) => i !== -1);
+    if (!eatIndexes.length) return;
+
+    const originals = {}; // 被扣过的冰箱食材原来的样子
+    const taken = {}; // 每样冰箱食材扣了多少（按它自己的单位）
+    const foods = getFoods().map((f) => Object.assign({}, f));
+    const used = []; // 提示用：扣掉了什么
+    const missing = []; // 冰箱里没有的
+    const parts = []; // 算营养用：实际吃掉的 { name, qty, unit }
+
+    eatIndexes.forEach((index) => {
+      (fixDishItems(dishes[index]).items || []).forEach(({ name, qty, unit }) => {
+        const key = foodKey(name);
+        // 米饭现做、调料不按份量扣
+        if (NEVER_BUY.indexOf(key) !== -1 || isSeasoning(name)) return;
+        const candidates = foods
+          .filter((f) => f.qty > 0 && foodKey(f.name) === key)
+          .sort((a, b) => (a.expireDate < b.expireDate ? -1 : 1)); // 先用快过期的
+        if (!candidates.length) {
+          if (missing.indexOf(name) === -1) missing.push(name);
+          return;
+        }
+        const needPer = gramsPerUnit(name, unit);
+        let remaining = needPer ? qty * needPer : qty; // 能换算就按克，否则按同样的单位
+        let tookAny = false;
+        candidates.forEach((f) => {
+          if (remaining <= 0.0001) return;
+          let take;
+          if (needPer) {
+            const per = gramsPerUnit(f.name, f.unit);
+            if (!per) return;
+            take = round2(Math.min(f.qty, remaining / per));
+            remaining -= take * per;
+          } else {
+            if (f.unit !== unit) return;
+            take = round2(Math.min(f.qty, remaining));
+            remaining -= take;
+          }
+          if (take <= 0) return;
+          tookAny = true;
+          if (!originals[f.id]) originals[f.id] = Object.assign({}, f);
+          taken[f.id] = round2((taken[f.id] || 0) + take);
+          f.qty = round2(f.qty - take);
+          parts.push({ name: f.name, qty: take, unit: f.unit });
+          used.push(`${foodLabel(f.name)} ${amt(take, f.unit)}`);
+        });
+        // 单位对不上（比如菜谱写"4个鸡蛋"，冰箱里记的是"1盒"）：不乱扣，留给手动处理
+        if (!tookAny && missing.indexOf(name) === -1) missing.push(name);
+      });
+    });
+
+    // 营养：这顿饭全家一起吃，平均分给每位家庭成员
+    let kcal = 0;
+    let protein = 0;
+    let known = false;
+    parts.forEach((p) => {
+      const n = nutritionFor(p.name, p.qty, p.unit);
+      kcal += n.kcal;
+      protein += n.protein;
+      known = known || n.known;
+    });
+    const members = Store.get('members');
+    const eaters = members.length ? members : [{ name: myName(), id: Store.deviceId }];
+    const dishNames = eatIndexes.map((i) => dishes[i].name);
+    const stamp = Date.now();
+    const records = parts.length
+      ? eaters.map((m, i) => ({
+          id: `meal-${stamp}-${i}`,
+          name: `🍽️ ${dishNames.join('、')}`,
+          dishes: dishNames,
+          meal,
+          qty: null,
+          unit: null,
+          owner: m.name,
+          eaterId: m.id,
+          kcal: Math.round(kcal / eaters.length),
+          protein: Math.round((protein / eaters.length) * 10) / 10,
+          known,
+          // 记在这顿饭那天，补记以前的饭不会算进今天
+          date,
+        }))
+      : [];
+
+    const markEaten = (value) => {
+      const plan = Object.assign({}, getPlan());
+      const day = Object.assign({}, plan[date] || {});
+      day[meal] = (day[meal] || []).map((dish, i) => {
+        if (eatIndexes.indexOf(i) === -1 || dishNames[eatIndexes.indexOf(i)] !== dish.name) return dish;
+        const d = Object.assign({}, dish);
+        if (value) d.eaten = true;
+        else delete d.eaten;
+        return d;
+      });
+      plan[date] = day;
+      Store.set('mealPlan', plan);
+    };
+
+    saveFoods(foods.filter((f) => f.qty > 0.001));
+    if (records.length) Store.set('eatenLog', Store.get('eatenLog').concat(records));
+    markEaten(true);
+    // 吃掉的菜不再需要买，冰箱里也扣掉了，购买清单重新对一遍
+    syncShoppingWithMenu();
+
+    const text =
+      t('mealAte', { meal: mealName(meal) }) +
+      (used.length ? t('mealUsed', { items: used.join(SEP()) }) : t('mealNothingUsed')) +
+      (missing.length ? t('mealMissing', { items: missing.map(foodLabel).join(SEP()) }) : '');
+    showToastWithAction(text, t('undo'), () => {
+      // 撤销：食材放回冰箱，删掉营养记录，这顿饭恢复成没吃
+      const current = getFoods();
+      const restored = current.map((f) => (taken[f.id] ? Object.assign({}, f, { qty: round2(f.qty + taken[f.id]) }) : f));
+      Object.keys(taken).forEach((id) => {
+        if (!current.some((f) => f.id === id)) restored.push(Object.assign({}, originals[id], { qty: taken[id] }));
+      });
+      saveFoods(restored);
+      const ids = records.map((r) => r.id);
+      Store.set('eatenLog', Store.get('eatenLog').filter((r) => ids.indexOf(r.id) === -1));
+      markEaten(false);
+      syncShoppingWithMenu();
+      showToast(t('mealUndone', { meal: mealName(meal) }));
+    });
+  }
 
   function openDishModal(date, meal) {
     pickingSlot = { date, meal };
+    editingDish = null;
+    setDishModalMode(false);
     const d = new Date(date + 'T00:00:00');
     $('dish-title').textContent = t('addDishTitle', { day: weekdayName(d.getDay()), meal: mealName(meal) });
     // 先列这一顿常吃的，再列其他的（早餐吃面条、晚餐吃饺子也行）
@@ -607,6 +856,10 @@
 
   $('custom-dish-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    if (editingDish) {
+      saveEditedDish();
+      return;
+    }
     const name = $('custom-dish-name').value.trim();
     if (!name) {
       showToast(t('writeDishName'));
@@ -617,6 +870,7 @@
 
   $('dish-cancel').addEventListener('click', () => {
     $('dish-modal').hidden = true;
+    editingDish = null;
   });
 
   // 同一种食材的"归类名"：猪肉、五花肉、肉末都算同一类，这样冰箱里有就能扣掉
@@ -659,6 +913,8 @@
       .forEach((date) => {
         MEALS.forEach((meal) => {
           ((plan[date] || {})[meal] || []).forEach((dish) => {
+            // 已经吃完的菜不用再买
+            if (dish.eaten) return;
             (fixDishItems(dish).items || []).forEach(({ name, qty, unit }) => {
               const key = foodKey(name);
               // 米饭现做现吃，不自动加进购买清单
@@ -676,7 +932,8 @@
 
   function syncShoppingWithMenu() {
     const before = Store.get('shoppingList');
-    const isAuto = (i) => i.requester === '食谱需要' && !i.bought;
+    // 手动改过数量的食谱条目（edited）算作"自己定的"，不再被自动重算覆盖
+    const isAuto = (i) => i.requester === '食谱需要' && !i.bought && !i.edited;
     const kept = before.filter((i) => !isAuto(i));
     const need = computeNeed();
 
@@ -775,6 +1032,7 @@
                 ${escapeHtml(itemText(item.name))}  [${escapeHtml(showRequester(item.requester))}]
               </span>
             </label>
+            <button class="small-button item-edit" data-edit-item="${escapeHtml(item.id)}" aria-label="${t('edit')}">✏️</button>
             <button class="record-x" data-delete-item="${escapeHtml(item.id)}" aria-label="${t('delete')}">✕</button>
           </div>`
       )
@@ -797,21 +1055,69 @@
   });
 
   // 删除购买清单里的一项：直接消失。食谱自动加的，记下"这次不买"，以后只有新排的菜多用到才会再加
+  // 食谱自动加的条目被删掉或改了数量：记下"食谱现在需要的这些已经处理过了"，
+  // 以后只有新排的菜多用到的部分才会再自动加
+  function dismissFromMenu(item) {
+    if (item.requester !== '食谱需要') return;
+    const key = foodKey(parseItem(item.name).name);
+    const need = computeNeed()[key];
+    if (!need) return;
+    const settings = Store.get('settings') || {};
+    const dismissed = Object.assign({}, settings.dismissed || {}, { [key]: need.amount });
+    Store.set('settings', Object.assign({}, settings, { dismissed }));
+  }
+
+  // 改购买清单上的数量：比如食谱要 1 磅鸡肉，想多买，改成 2 磅
+  // 只写数字时保留原来的单位；也可以连名字一起改（如"鸡腿 2磅"）
+  function editShoppingItem(id) {
+    const item = Store.get('shoppingList').find((i) => i.id === id);
+    if (!item) return;
+    const p = parseItem(item.name);
+    const hasQty = /\d/.test(item.name);
+    const current = hasQty ? (I18N.lang === 'en' ? amt(p.qty, p.unit) : `${formatQty(p.qty)}${p.unit}`) : '';
+    const examples = region() === 'US' ? t('qtyExamplesUS') : t('qtyExamplesCN');
+    const input = prompt(t('itemQtyPrompt', { name: foodLabel(p.name), examples }), current);
+    if (input == null) return;
+    const text = input.trim();
+    if (!text) return;
+    let name;
+    if (/^\d+(\.\d+)?$/.test(text)) {
+      // 只写了数字：沿用原来的单位
+      name = `${p.name} ${text}${hasQty ? p.unit : ''}`.trim();
+    } else if (/^[\d.\s半]/.test(text) || /^half\b/i.test(text)) {
+      // 数量 + 单位（如"2磅""2 lb"）：名字不变
+      const q = parseItem(`${p.name} ${text}`);
+      if (!(q.qty > 0) || q.name !== p.name) {
+        showToast(t('qtyNotUnderstood'), 2500);
+        return;
+      }
+      name = `${p.name} ${text}`;
+    } else {
+      // 连名字一起写了（如"鸡腿 2磅"）
+      name = text;
+    }
+    if (name === item.name) return;
+    dismissFromMenu(item);
+    Store.set(
+      'shoppingList',
+      Store.get('shoppingList').map((i) => (i.id === id ? Object.assign({}, i, { name, edited: true }) : i))
+    );
+    showToast(t('itemChanged', { name: itemText(name) }));
+  }
+
   $('shopping-list').addEventListener('click', (e) => {
+    const editButton = e.target.closest('[data-edit-item]');
+    if (editButton) {
+      e.preventDefault();
+      editShoppingItem(editButton.dataset.editItem);
+      return;
+    }
     const button = e.target.closest('[data-delete-item]');
     if (!button) return;
     e.preventDefault();
     const item = Store.get('shoppingList').find((i) => i.id === button.dataset.deleteItem);
     if (!item) return;
-    if (item.requester === '食谱需要') {
-      const key = foodKey(parseItem(item.name).name);
-      const need = computeNeed()[key];
-      if (need) {
-        const settings = Store.get('settings') || {};
-        const dismissed = Object.assign({}, settings.dismissed || {}, { [key]: need.amount });
-        Store.set('settings', Object.assign({}, settings, { dismissed }));
-      }
-    }
+    dismissFromMenu(item);
     Store.set('shoppingList', Store.get('shoppingList').filter((i) => i.id !== item.id));
     showToast(t('deleted', { name: item.name }));
   });
@@ -1053,7 +1359,7 @@
         (r) => `
           <div class="row">
             <button class="record-x" data-record="${escapeHtml(r.id)}" aria-label="${t('delete')}">✕</button>
-            <span class="row-name">${escapeHtml(foodLabel(r.name))}${r.qty != null ? ` <span class="food-qty">${escapeHtml(amt(r.qty, r.unit))}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
+            <span class="row-name">${escapeHtml(r.dishes ? `🍽️ ${r.dishes.map(dishLabel).join(SEP())}` : foodLabel(r.name))}${r.qty != null ? ` <span class="food-qty">${escapeHtml(amt(r.qty, r.unit))}</span>` : ''}${r.owner ? ` <span class="eater">${escapeHtml(r.owner)}</span>` : ''}</span>
             ${
               r.known
                 ? `<span class="row-numbers">${r.kcal} ${t('kcal')} · ${r.protein} ${t('gram')}</span>`
